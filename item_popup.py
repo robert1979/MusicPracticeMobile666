@@ -83,7 +83,7 @@ class ItemPopup:
                 orientation='vertical',
                 size_hint=(1, None),
                 height='200dp',
-                pos_hint={'center_x': 0.5, 'center_y': 0.2},
+                pos_hint={'center_x': 0.5, 'center_y': 0.5},
             )
             main_layout.add_widget(button_layout)
             main_layout.add_widget(color_button_layout)
