@@ -74,7 +74,7 @@ class MainApp(MDApp):
     def save_data(self):
         """Save session data to a JSON file from the runtime dictionary."""
         with open(self.data_file, 'w') as f:
-            json.dump(self.sessions, f)
+            json.dump(self.sessions, f, indent=4)  # Save data, including is_favorite
 
     def load_data(self):
         """Load session data from the JSON file into the runtime dictionary."""
@@ -82,16 +82,32 @@ class MainApp(MDApp):
             with open(self.data_file, 'r') as f:
                 self.sessions = json.load(f)
 
+            for session_name, session_data in self.sessions.items():
+                last_practiced = session_data.get('last_practiced')
+                practice_count = session_data.get('practice_count', 0)
+                is_favorite = session_data.get('is_favorite', False)  # Load the favorite state
+
+                # Convert last_practiced to date
+                last_practiced_date = None if last_practiced is None else datetime.strptime(last_practiced,
+                                                                                            "%Y-%m-%d").date()
+
+                # Add the session to the UI with the favorite state
+                self.add_list_item(session_name, last_practiced_date, practice_count, is_favorite)
+
     def populate_ui(self):
         """Populate the UI from the session data in the runtime dictionary."""
         self.root.ids.item_list.clear_widgets()  # Clear existing UI items
         for session_name, session_data in self.sessions.items():
             last_practiced = session_data.get('last_practiced')
             practice_count = session_data.get('practice_count', 0)
-            last_practiced_date = None if last_practiced is None else datetime.strptime(last_practiced, "%Y-%m-%d").date()
-            self.add_list_item(session_name, last_practiced_date, practice_count)
+            is_favorite = session_data.get('is_favorite', False)  # Get the favorite state
+            last_practiced_date = None if last_practiced is None else datetime.strptime(last_practiced,
+                                                                                        "%Y-%m-%d").date()
 
-    def add_list_item(self, name, last_practiced=None, practice_count=0):
+            # Pass the is_favorite value to add_list_item
+            self.add_list_item(session_name, last_practiced_date, practice_count, is_favorite)
+
+    def add_list_item(self, name, last_practiced=None, practice_count=0, is_favorite=False):
         """Add a new session to the UI and runtime dictionary."""
         # Format the subtitle depending on the last_practiced value
         last_practiced_text = self.format_last_practiced(last_practiced)
@@ -107,10 +123,10 @@ class MainApp(MDApp):
         list_item.ids._lbl_primary.bold = True
 
         # Create the left star icon for favorite using IconLeftWidget
-        favorite_icon = IconLeftWidget(icon="star-outline")  # Default to outlined star
+        favorite_icon = IconLeftWidget(icon="star" if is_favorite else "star-outline")
 
         # Bind the favorite toggle functionality to the icon
-        favorite_icon.bind(on_release=lambda x: self.toggle_favorite(favorite_icon))
+        favorite_icon.bind(on_release=lambda x: self.toggle_favorite(favorite_icon, name))
 
         # Add the favorite icon to the left side of the list item
         list_item.add_widget(favorite_icon)
@@ -125,22 +141,31 @@ class MainApp(MDApp):
         # Add the list item to the MDList
         self.root.ids.item_list.add_widget(list_item)
 
-        # Update the runtime dictionary with the new session
+        # Ensure the runtime dictionary is updated with the favorite state
         self.sessions[name] = {
             'last_practiced': last_practiced.strftime('%Y-%m-%d') if last_practiced else None,
             'practice_count': practice_count,
-            'favorite': False  # Add a favorite state to the runtime data
+            'is_favorite': is_favorite  # Save the favorite status explicitly
         }
 
-        # Save data whenever a new session is added
+        # Save data whenever a new session is added or updated
         self.save_data()
 
-    def toggle_favorite(self, icon):
-        """Toggle the favorite state of the session."""
-        if icon.icon == "star-outline":
+    def toggle_favorite(self, icon, session_name):
+        """Toggle the favorite state of the session explicitly."""
+        # Check the current state of the session's favorite status
+        is_favorite = self.sessions[session_name].get('is_favorite', False)
+
+        # Toggle the favorite state
+        if not is_favorite:
             icon.icon = "star"  # Switch to filled star if not favorited
+            self.sessions[session_name]['is_favorite'] = True  # Update to favorited
         else:
             icon.icon = "star-outline"  # Switch back to outlined star
+            self.sessions[session_name]['is_favorite'] = False  # Update to not favorited
+
+        # Save the updated favorite state after toggle
+        self.save_data()
 
     def show_item_popup(self, session_name):
         """Show the popup using ItemPopup when the settings icon is clicked."""
@@ -235,9 +260,6 @@ class MainApp(MDApp):
         else:
             return "Invalid date"  # In case there's an issue with future dates
 
-    def on_menu_button(self):
-        print("Menu button pressed")
-
     def on_add_button(self):
         """Show a dialog to add a new session name."""
         if not self.dialog:
@@ -271,8 +293,8 @@ class MainApp(MDApp):
         self.dialog.dismiss()
 
     def show_settings_menu(self, button):
-        """Display a dropdown menu with 'About' and 'Reset' options."""
-        if not self.menu:
+        """Display a dropdown menu for settings with 'About' and 'Reset' options."""
+        if not hasattr(self, 'settings_menu'):
             menu_items = [
                 {
                     "text": "About",
@@ -285,12 +307,12 @@ class MainApp(MDApp):
                     "on_release": lambda: self.on_reset()
                 },
             ]
-            self.menu = MDDropdownMenu(
+            self.settings_menu = MDDropdownMenu(
                 caller=button,
                 items=menu_items,
                 width_mult=4,
             )
-        self.menu.open()
+        self.settings_menu.open()
 
     def on_about(self):
         """Show an 'About' dialog."""
@@ -300,7 +322,7 @@ class MainApp(MDApp):
                 text="This is a Music Practice App.\nVersion 1.0",
                 buttons=[MDFlatButton(text="OK", on_release=self.close_dialog)],
             )
-        self.menu.dismiss()  # Close the dropdown menu
+        self.settings_menu.dismiss()  # Close the settings dropdown menu
         self.settings_dialog.open()
 
     def on_reset(self):
@@ -321,7 +343,7 @@ class MainApp(MDApp):
                 MDFlatButton(text="RESET", on_release=confirm_reset),
             ],
         )
-        self.menu.dismiss()  # Close the dropdown menu
+        self.settings_menu.dismiss()  # Close the settings dropdown menu
         reset_dialog.open()
 
     def close_dialog(self, obj):
@@ -331,62 +353,59 @@ class MainApp(MDApp):
 
     def on_sort_button(self, button):
         """Display a dropdown menu with sorting options."""
-        menu_items = [
-            {
-                "text": "Alphabetical",
-                "viewclass": "OneLineListItem",
-                "on_release": lambda: self.sort_sessions("Alphabetical")
-            },
-            {
-                "text": "Practice Count",
-                "viewclass": "OneLineListItem",
-                "on_release": lambda: self.sort_sessions("Practice Count")
-            },
-            {
-                "text": "Last Practice",
-                "viewclass": "OneLineListItem",
-                "on_release": lambda: self.sort_sessions("Last Practice")
-            },
-        ]
-
-        sort_menu = MDDropdownMenu(
-            caller=button,
-            items=menu_items,
-            width_mult=4,
-        )
-        sort_menu.open()
+        if not hasattr(self, 'sort_menu'):
+            menu_items = [
+                {
+                    "text": "Alphabetical",
+                    "viewclass": "OneLineListItem",
+                    "on_release": lambda: self.sort_sessions("alphabetical")
+                },
+                {
+                    "text": "Practice Count",
+                    "viewclass": "OneLineListItem",
+                    "on_release": lambda: self.sort_sessions("practice_count")
+                },
+                {
+                    "text": "Last Practice",
+                    "viewclass": "OneLineListItem",
+                    "on_release": lambda: self.sort_sessions("last_practice")
+                },
+                {
+                    "text": "Favourites",
+                    "viewclass": "OneLineListItem",
+                    "on_release": lambda: self.sort_sessions("favourites")
+                },
+            ]
+            self.sort_menu = MDDropdownMenu(
+                caller=button,
+                items=menu_items,
+                width_mult=4,
+            )
+        self.sort_menu.open()
 
     def sort_sessions(self, criteria):
-        """Sort sessions based on the selected criteria."""
-        if criteria == "Alphabetical":
-            # Sort sessions by name alphabetically
+        """Sort the sessions based on the selected criteria."""
+        if criteria == "alphabetical":
             sorted_sessions = sorted(self.sessions.items(), key=lambda x: x[0].lower())
-        elif criteria == "Practice Count":
-            # Sort sessions by practice count (ascending order)
-            sorted_sessions = sorted(self.sessions.items(), key=lambda x: x[1].get('practice_count', 0))
-        elif criteria == "Last Practice":
-            # Sort sessions by last practiced date (most recent first)
-            sorted_sessions = sorted(
-                self.sessions.items(),
-                key=lambda x: (
-                    datetime.strptime(x[1]['last_practiced'], '%Y-%m-%d') if x[1]['last_practiced'] else datetime.min),
-                reverse=True  # Most recent date first
-            )
+        elif criteria == "practice_count":
+            sorted_sessions = sorted(self.sessions.items(), key=lambda x: x[1]['practice_count'], reverse=True)
+        elif criteria == "last_practice":
+            sorted_sessions = sorted(self.sessions.items(), key=lambda x: x[1]['last_practiced'] or "", reverse=True)
+        elif criteria == "favourites":
+            # Sort by is_favorite (True first), and then alphabetically
+            sorted_sessions = sorted(self.sessions.items(), key=lambda x: (not x[1]['is_favorite'], x[0].lower()))
 
-        # Update the UI with the sorted sessions
+        # Clear the current list and re-populate it with the sorted sessions
         self.root.ids.item_list.clear_widgets()
         for session_name, session_data in sorted_sessions:
             last_practiced = session_data.get('last_practiced')
             practice_count = session_data.get('practice_count', 0)
+            is_favorite = session_data.get('is_favorite', False)
             last_practiced_date = None if last_practiced is None else datetime.strptime(last_practiced,
                                                                                         "%Y-%m-%d").date()
-            self.add_list_item(session_name, last_practiced_date, practice_count)
+            self.add_list_item(session_name, last_practiced_date, practice_count, is_favorite)
 
-        # Safely dismiss the menu if it exists
-        if self.menu:
-            self.menu.dismiss()
-
-        print(f"Sorted by: {criteria}")
+        self.sort_menu.dismiss()  # Close the sorting menu after sorting
 
 
 if __name__ == '__main__':
