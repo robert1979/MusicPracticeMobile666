@@ -209,21 +209,38 @@ class MainApp(MDApp):
         """Show the popup using ItemPopup when the settings icon is clicked."""
         session_data = self.sessions.get(session_name, {})
         last_practiced_str = session_data.get('last_practiced')
-        last_practiced_date = None if last_practiced_str is None else datetime.strptime(last_practiced_str, "%Y-%m-%d").date()
+        last_practiced_date = None if last_practiced_str is None else datetime.strptime(last_practiced_str,
+                                                                                        "%Y-%m-%d").date()
+        session_type = session_data.get('session_type', 0)  # Get session type, default to 0 if not found
 
-        # Initialize the ItemPopup with the actual date
-        popup = ItemPopup(session_name, last_practiced_date, self.handle_action)
+        # Pass SESSION_COLORS to ItemPopup
+        popup = ItemPopup(session_name, last_practiced_date, self.handle_action, session_type, SESSION_COLORS)
         popup_dialog = popup.create_popup()
         popup_dialog.open()
 
-    def handle_action(self, action, session_name, selected_date=None):
+    def handle_action(self, action, session_name, value=None):
         """Handle actions selected from the popup."""
         if action == "Delete":
             self.delete_session(session_name)
         elif action == "Add Session":
             self.update_session(session_name)
-        elif action == "Edit Last Practice Date" and selected_date:
-            self.update_last_practiced_date(session_name, selected_date)
+        elif action == "Edit Last Practice Date" and value:
+            self.update_last_practiced_date(session_name, value)
+        elif action == "Update Session Type":
+            # Update session type
+            self.update_session_type(session_name, value)
+
+    def update_session_type(self, session_name, new_session_type):
+        """Update the session type of a session."""
+        # Update the runtime dictionary
+        if session_name in self.sessions:
+            self.sessions[session_name]['session_type'] = new_session_type
+
+        # Re-populate the UI to reflect the updated color based on session type
+        self.populate_ui()
+
+        # Save the updated data
+        self.save_data()
 
     def update_last_practiced_date(self, session_name, selected_date):
         """Update the last practiced date of a session."""
