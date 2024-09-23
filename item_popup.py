@@ -45,14 +45,14 @@ class ItemPopup:
             delete_button = MDIconButton(
                 icon="delete",
                 size_hint=(1, None),
-                height="48dp",
+                height="44dp",
                 on_release=lambda x: self.on_button_press("Delete")
             )
 
             # Create a horizontal layout for the additional 4 colored buttons
             color_button_layout = BoxLayout(
                 orientation='horizontal',  # Children laid out horizontally
-                spacing=30,
+                spacing=0,
                 size_hint=(1, None),  # Disable size hints to allow manual control
                 height='48dp'  # Set the desired height
             )
@@ -85,8 +85,6 @@ class ItemPopup:
             # Main layout to combine both action buttons and color buttons
             main_layout = BoxLayout(
                 orientation='vertical',  # Stack widgets vertically
-                spacing=10,
-                padding='30dp',
                 size_hint=(1, None),  # Disable size hints for manual control
                 height='200dp',  # Adjust height to fit content
                 pos_hint={'center_x': 0.5, 'center_y': 0}  # Center the main layout both horizontally and vertically
@@ -99,12 +97,13 @@ class ItemPopup:
                 title=f"{self.session_name}",
                 type="custom",
                 content_cls=main_layout,  # Use the horizontal button layout
-                size_hint=(0.75, None),  # Disable size hints for manual control
+                size_hint=(0.8, None),  # Disable size hints for manual control
                 height='200dp',  # Adjust height to fit content
                 buttons=[],  # No additional buttons needed
             )
 
-            #self.add_debug_border(color_button_layout, color=(0, 1, 0))
+            self.add_debug_border(main_layout, color=(0, 1, 0))
+            self.add_debug_border(color_button_layout, color=(1, 1, 0))
 
         return self.dialog
 
