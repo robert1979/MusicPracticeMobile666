@@ -18,7 +18,7 @@ class ItemPopup:
                 type="confirmation",
                 buttons=[
                     MDFlatButton(
-                        text="ADD SESSION", on_release=lambda x: self.on_button_press("Add Session")
+                        text="ADD SESSION", on_release=lambda x: self.show_add_session_confirmation()
                     ),
                     MDFlatButton(
                         text="EDIT LAST PRACTICE DATE", on_release=lambda x: self.on_button_press("Edit Last Practice Date")
@@ -30,8 +30,26 @@ class ItemPopup:
             )
         return self.dialog
 
-    def on_button_press(self, action):
+    def show_add_session_confirmation(self):
+        """Show confirmation dialog before adding a session."""
+        confirmation_dialog = MDDialog(
+            title="Confirm Session Addition",
+            text="Are you sure you want to update the session?",
+            buttons=[
+                MDFlatButton(
+                    text="CANCEL", on_release=lambda x: confirmation_dialog.dismiss()
+                ),
+                MDFlatButton(
+                    text="CONFIRM", on_release=lambda x: self.on_button_press("Add Session", confirmation_dialog)
+                ),
+            ]
+        )
+        confirmation_dialog.open()
+
+    def on_button_press(self, action, dialog=None):
         """Handle button press and call the provided callback with the action."""
+        if dialog:
+            dialog.dismiss()
         if self.dialog:
             self.dialog.dismiss()
         self.callback(action, self.session_name)

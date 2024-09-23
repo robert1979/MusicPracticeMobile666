@@ -119,9 +119,29 @@ class MainApp(MDApp):
         """Handle actions selected from the popup."""
         if action == "Delete":
             self.delete_session(session_name)
+        elif action == "Add Session":
+            self.update_session(session_name)
         else:
             print(f"{action} selected for session: {session_name}")
-        # No need to call dismiss() here, as it is already handled in ItemPopup.
+
+    def update_session(self, session_name):
+        """Update the session with today's date and increment the practice count."""
+        today = datetime.now().date()
+
+        # Find the session by name and update it
+        for child in self.root.ids.item_list.children:
+            if isinstance(child, ThreeLineAvatarIconListItem) and child.text == session_name:
+                # Update last practiced date to today
+                child.secondary_text = f"Last Practiced: Today"
+
+                # Increment practice count
+                current_count = int(child.tertiary_text.split(": ")[-1])
+                child.tertiary_text = f"Practice Count: {current_count + 1}"
+
+                break
+
+        # Save the updated data after changes
+        self.save_data(self.get_sessions_as_dict())
 
     def delete_session(self, session_name):
         """Delete a session by its name."""
