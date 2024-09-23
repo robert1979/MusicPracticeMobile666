@@ -8,6 +8,7 @@ from kivymd.uix.button import MDFlatButton
 from kivymd.uix.textfield import MDTextField
 from datetime import datetime, timedelta
 from kivy.utils import platform
+from item_popup import ItemPopup  # Import the ItemPopup class
 
 KV = '''
 MDScreen:
@@ -97,7 +98,7 @@ class MainApp(MDApp):
 
         # Create the trailing vertical dots icon (settings)
         trailing_icon = IconRightWidget(icon="dots-vertical")
-        trailing_icon.bind(on_release=lambda x: self.show_item_settings_popup(name))
+        trailing_icon.bind(on_release=lambda x: self.show_item_popup(name))
 
         # Add the trailing icon to the list item
         list_item.add_widget(trailing_icon)
@@ -108,41 +109,29 @@ class MainApp(MDApp):
         # Save data whenever a new session is added
         self.save_data(self.get_sessions_as_dict())
 
-    def show_item_settings_popup(self, name):
-        """Show a popup with 'Add Session', 'Edit Last Practice Date', and 'Delete'."""
-        if not self.settings_dialog:
-            self.settings_dialog = MDDialog(
-                title=f"Options for {name}",
-                type="confirmation",
-                buttons=[
-                    MDFlatButton(
-                        text="ADD SESSION", on_release=lambda x: self.handle_action("Add Session", name)
-                    ),
-                    MDFlatButton(
-                        text="EDIT LAST PRACTICE DATE", on_release=lambda x: self.handle_action("Edit Last Practice Date", name)
-                    ),
-                    MDFlatButton(
-                        text="DELETE", on_release=lambda x: self.handle_action("Delete", name)
-                    ),
-                ]
-            )
-        self.settings_dialog.open()
+    def show_item_popup(self, session_name):
+        """Show the popup using ItemPopup when the settings icon is clicked."""
+        popup = ItemPopup(session_name, self.handle_action)
+        popup_dialog = popup.create_popup()
+        popup_dialog.open()
 
-    def handle_action(self, action, name):
+    def handle_action(self, action, session_name):
         """Handle actions selected from the popup."""
         if action == "Delete":
-            self.delete_session(name)
-        # Add logic for "Add Session" or "Edit Last Practice Date" if needed.
-        print(f"{action} selected for session: {name}")
-        self.settings_dialog.dismiss()
+            self.delete_session(session_name)
+        else:
+            print(f"{action} selected for session: {session_name}")
+        # No need to call dismiss() here, as it is already handled in ItemPopup.
 
-    def delete_session(self, name):
+    def delete_session(self, session_name):
         """Delete a session by its name."""
+        # Find the session by name and remove it from the list
         for child in self.root.ids.item_list.children[:]:
-            if isinstance(child, ThreeLineAvatarIconListItem) and child.text == name:
+            if isinstance(child, ThreeLineAvatarIconListItem) and child.text == session_name:
                 self.root.ids.item_list.remove_widget(child)
                 break
-        self.save_data(self.get_sessions_as_dict())  # Save the updated data after deletion
+        # Save the updated data after deletion
+        self.save_data(self.get_sessions_as_dict())
 
     def format_last_practiced(self, last_practiced):
         """Format the 'Last Practiced' field."""
