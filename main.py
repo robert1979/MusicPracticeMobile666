@@ -22,7 +22,9 @@ MDScreen:
         ScrollView:
             MDList:
                 id: item_list
+                padding: [0, 40, 0, 0]  # Adds 20dp padding between the toolbar and the list
 '''
+
 
 
 class MainApp(MDApp):
@@ -43,6 +45,16 @@ class MainApp(MDApp):
             secondary_text=f"Last Practiced: {last_practiced_text}",
             tertiary_text=f"Practice Count: {practice_count}"
         )
+
+        # Increase font size of the list item (Name, Last Practiced, and Practice Count)
+        list_item.ids._lbl_primary.font_size = "20sp"  # For the main text (Name)
+        list_item.ids._lbl_secondary.font_size = "16sp"  # For secondary text (Last Practiced)
+        list_item.ids._lbl_tertiary.font_size = "14sp"  # For tertiary text (Practice Count)
+
+        # Add padding between the header (Name) and the other fields
+        #list_item.ids._lbl_primary.padding_y = -10.0  # Adds vertical space above and below the Name
+        list_item.ids._lbl_secondary.padding_y = 5.0  # Adds space above and below the Last Practiced
+        list_item.ids._lbl_tertiary.padding_y = 5.0  # Adds space above and below the Practice Count
 
         # Create the trailing vertical dots icon (settings)
         trailing_icon = IconRightWidget(icon="dots-vertical")
