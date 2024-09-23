@@ -9,6 +9,8 @@ from kivymd.uix.textfield import MDTextField
 from datetime import datetime, timedelta
 from kivy.utils import platform
 from item_popup import ItemPopup  # Import the ItemPopup class
+from kivymd.uix.menu import MDDropdownMenu
+from kivy.metrics import dp
 
 KV = '''
 MDScreen:
@@ -19,7 +21,7 @@ MDScreen:
 
         MDTopAppBar:
             title: "Sessions"
-            left_action_items: [["menu", lambda x: app.on_menu_button()]]
+            left_action_items: [["menu", lambda x: app.show_settings_menu(x)]]
             right_action_items: [["plus", lambda x: app.on_add_button()]]
             elevation: 10
 
@@ -40,6 +42,7 @@ class MainApp(MDApp):
         self.theme_cls.primary_palette = "Blue"  # Set the primary color palette
         self.theme_cls.theme_style = "Light"  # Set the theme to Light or Dark
         self.data_file = self.get_data_file_path()
+        self.menu = None  # Initialize the menu attribute to None
         return Builder.load_string(KV)
 
     def on_start(self):
@@ -233,6 +236,64 @@ class MainApp(MDApp):
             self.add_list_item(name=name_input, last_practiced=None)
         self.dialog.dismiss()
 
+    def show_settings_menu(self, button):
+        """Display a dropdown menu with 'About' and 'Reset' options."""
+        if not self.menu:
+            menu_items = [
+                {
+                    "text": "About",
+                    "viewclass": "OneLineListItem",
+                    "on_release": lambda: self.on_about()
+                },
+                {
+                    "text": "Reset",
+                    "viewclass": "OneLineListItem",
+                    "on_release": lambda: self.on_reset()
+                },
+            ]
+            self.menu = MDDropdownMenu(
+                caller=button,
+                items=menu_items,
+                width_mult=4,
+            )
+        self.menu.open()
+
+    def on_about(self):
+        """Show an 'About' dialog."""
+        if not self.settings_dialog:
+            self.settings_dialog = MDDialog(
+                title="About",
+                text="This is a Music Practice App.\nVersion 1.0",
+                buttons=[MDFlatButton(text="OK", on_release=self.close_dialog)],
+            )
+        self.menu.dismiss()  # Close the dropdown menu
+        self.settings_dialog.open()
+
+    def on_reset(self):
+        """Reset all session data after confirmation."""
+
+        def confirm_reset(instance, obj):
+            self.sessions.clear()  # Clear the runtime dictionary
+            self.root.ids.item_list.clear_widgets()  # Clear the UI list
+            self.save_data()  # Save the empty state
+            reset_dialog.dismiss()  # Close the confirmation dialog
+
+        # Create a confirmation dialog for resetting
+        reset_dialog = MDDialog(
+            title="Confirm Reset",
+            text="Are you sure you want to reset all session data?",
+            buttons=[
+                MDFlatButton(text="CANCEL", on_release=lambda x: reset_dialog.dismiss()),
+                MDFlatButton(text="RESET", on_release=confirm_reset),
+            ],
+        )
+        self.menu.dismiss()  # Close the dropdown menu
+        reset_dialog.open()
+
+    def close_dialog(self, obj):
+        """Close the current dialog."""
+        if self.settings_dialog:
+            self.settings_dialog.dismiss()
 
 if __name__ == '__main__':
     MainApp().run()
