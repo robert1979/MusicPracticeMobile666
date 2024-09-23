@@ -1,16 +1,16 @@
-import json
 import os
+import json
 from kivy.lang import Builder
 from kivymd.app import MDApp
-from kivymd.uix.list import ThreeLineAvatarIconListItem, IconRightWidget,IconLeftWidget
+from kivymd.uix.list import ThreeLineAvatarIconListItem, IconRightWidget, IconLeftWidget
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton
 from kivymd.uix.textfield import MDTextField
 from datetime import datetime, timedelta
 from kivy.utils import platform
+from kivy.storage.jsonstore import JsonStore  # Import JsonStore
 from item_popup import ItemPopup  # Import the ItemPopup class
 from kivymd.uix.menu import MDDropdownMenu
-from kivy.utils import platform
 from kivy.metrics import dp
 
 # Import permissions for Android
@@ -62,9 +62,11 @@ class MainApp(MDApp):
         print("MusApp- Building the application UI...")
         self.theme_cls.primary_palette = "Blue"  # Set the primary color palette
         self.theme_cls.theme_style = "Light"  # Set the theme to Light or Dark
-        self.data_file = self.get_data_file_path()
-        self.menu = None  # Initialize the menu attribute to None
 
+        # Initialize JsonStore without worrying about file paths
+        self.store = JsonStore('sessions_data.json')
+
+        self.menu = None  # Initialize the menu attribute to None
         return Builder.load_string(KV)
 
     def on_start(self):
@@ -88,31 +90,13 @@ class MainApp(MDApp):
             except Exception as e:
                 print(f"MusApp- Permission request failed: {e}")
 
-    def get_data_file_path(self):
-        """Return the path to save/load data based on platform compatibility."""
-        if platform == 'android':
-            context = mActivity.getApplicationContext()
-            result = context.getExternalFilesDir(None)  # Access app-specific external storage
-            if result:
-                storage_path = str(result)  # Convert to string
-                # Ensure the directory exists
-                if not os.path.exists(storage_path):
-                    os.makedirs(storage_path)
-                return os.path.join(storage_path, 'sessions_data.json')
-            else:
-                print("MusApp- Warning: External storage path not found.")
-                return os.path.join(app_storage_path(), 'sessions_data.json')
-        else:
-            return os.path.join(os.path.dirname(__file__), 'sessions_data.json')
-
     def save_data(self):
-        """Save session data to a JSON file from the runtime dictionary."""
+        """Save session data to JsonStore from the runtime dictionary."""
         serializable_sessions = {}
         for name, session in self.sessions.items():
             try:
                 serializable_sessions[name] = {
-                    'last_practiced': session.get('last_practiced', None).strftime('%Y-%m-%d') if session.get(
-                        'last_practiced') else None,
+                    'last_practiced': session.get('last_practiced', None),
                     'practice_count': session.get('practice_count', 0),
                     'is_favorite': session.get('is_favorite', False)
                 }
@@ -120,34 +104,29 @@ class MainApp(MDApp):
                 print(f"MusApp- Error processing session '{name}': {e}")
 
         try:
-            with open(self.data_file, 'w') as f:
-                json.dump(serializable_sessions, f, indent=4)  # Save data
+            self.store.put('sessions', data=serializable_sessions)
             print("MusApp- Data saved successfully.")
-        except IOError as io_error:
-            print(f"MusApp- IO error while saving data: {io_error}")
         except Exception as e:
-            print(f"MusApp- Unexpected error while saving data: {e}")
+            print(f"MusApp- Error saving data to JsonStore: {e}")
 
     def load_data(self):
-        """Load session data from the JSON file into the runtime dictionary."""
-        print("MusApp- Data file path is:", self.data_file)  # Debugging line
-        if os.path.exists(self.data_file):
-            print("MusApp- Loading data from:", self.data_file)
-            with open(self.data_file, 'r') as f:
-                self.sessions = json.load(f)
-
+        """Load session data from JsonStore into the runtime dictionary."""
+        if self.store.exists('sessions'):
+            self.sessions = self.store.get('sessions')['data']
             for session_name, session_data in self.sessions.items():
                 last_practiced = session_data.get('last_practiced')
                 practice_count = session_data.get('practice_count', 0)
-                is_favorite = session_data.get('is_favorite', False)  # Load the favorite state
+                is_favorite = session_data.get('is_favorite', False)
 
                 # Convert last_practiced to date
                 last_practiced_date = None if last_practiced is None else datetime.strptime(last_practiced,
                                                                                             "%Y-%m-%d").date()
 
-                # Add the session to the UI with the favorite state
+                # Add the session to the UI
                 self.add_list_item(session_name, last_practiced_date, practice_count, is_favorite)
-                print("MusApp- Data loaded:", self.sessions)
+            print("MusApp- Data loaded:", self.sessions)
+        else:
+            print("MusApp- No existing session data found.")
 
     def populate_ui(self):
         print("MusApp- Populating UI with session data...")
