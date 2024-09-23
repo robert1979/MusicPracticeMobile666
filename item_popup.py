@@ -1,6 +1,7 @@
 from kivymd.uix.dialog import MDDialog
-from kivymd.uix.button import MDFlatButton
+from kivymd.uix.button import MDRaisedButton, MDIconButton
 from kivymd.uix.pickers import MDDatePicker
+from kivy.uix.boxlayout import BoxLayout
 
 class ItemPopup:
 
@@ -12,41 +13,61 @@ class ItemPopup:
         self.dialog = None
 
     def create_popup(self):
-        """Create the popup with buttons for 'Add Session', 'Edit Last Practice Date', and 'Delete'."""
+        """Create the popup with icon buttons for 'Add Session', 'Edit Last Practice Date', and 'Delete'."""
         if not self.dialog:
-            edit_button = MDFlatButton(
-                text="EDIT LAST PRACTICE DATE",
+            # Create a horizontal layout for the buttons
+            button_layout = BoxLayout(orientation='horizontal', spacing=10, padding=10, size_hint_y=None, height='48dp')
+
+            # Add Session Button with Icon
+            add_button = MDIconButton(
+                icon="plus",
+                size_hint=(None, None),
+                size=("48dp", "48dp"),
+                on_release=lambda x: self.show_add_session_confirmation()
+            )
+
+            # Edit Practice Date Button with Icon
+            edit_button = MDIconButton(
+                icon="pencil",
+                size_hint=(None, None),
+                size=("48dp", "48dp"),
                 on_release=lambda x: self.show_date_picker()
             )
-            # Grey out the button if last_practiced_date is not set
+            # Disable the "Edit" button if last_practiced_date is not set
             if self.last_practiced_date is None:
                 edit_button.disabled = True
 
+            # Delete Button with Icon
+            delete_button = MDIconButton(
+                icon="delete",
+                size_hint=(None, None),
+                size=("48dp", "48dp"),
+                on_release=lambda x: self.on_button_press("Delete")
+            )
+
+            # Add the buttons to the layout
+            button_layout.add_widget(add_button)
+            button_layout.add_widget(edit_button)
+            button_layout.add_widget(delete_button)
+
+            # Create the dialog with the custom button layout
             self.dialog = MDDialog(
                 title=f"{self.session_name}",
-                type="confirmation",
-                buttons=[
-                    MDFlatButton(
-                        text="ADD SESSION", on_release=lambda x: self.show_add_session_confirmation()
-                    ),
-                    edit_button,
-                    MDFlatButton(
-                        text="DELETE", on_release=lambda x: self.on_button_press("Delete")
-                    ),
-                ],
+                type="custom",
+                content_cls=button_layout,  # Use the horizontal button layout
+                buttons=[],  # No additional buttons needed
             )
+
         return self.dialog
 
     def show_date_picker(self):
         """Show a date picker to select a new last practice date."""
-        print("Date Picker opened")  # Debugging
         date_picker = MDDatePicker()
         date_picker.bind(on_save=self.set_last_practice_date)  # Explicitly bind the callback
         date_picker.open()
 
     def set_last_practice_date(self, instance, value, date_range):
         """Callback when a date is selected from the date picker."""
-        print(f"Date selected: {value}")  # Debugging
         self.callback("Edit Last Practice Date", self.session_name, value)
 
     def show_add_session_confirmation(self):
@@ -55,10 +76,10 @@ class ItemPopup:
             title="Confirm Session Addition",
             text="Are you sure you want to update the session?",
             buttons=[
-                MDFlatButton(
+                MDRaisedButton(
                     text="CANCEL", on_release=lambda x: confirmation_dialog.dismiss()
                 ),
-                MDFlatButton(
+                MDRaisedButton(
                     text="CONFIRM", on_release=lambda x: self.on_button_press("Add Session", confirmation_dialog)
                 ),
             ]
