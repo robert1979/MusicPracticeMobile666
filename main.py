@@ -63,9 +63,20 @@ class MainApp(MDApp):
             with open(self.data_file, 'r') as f:
                 sessions = json.load(f)
                 for session in sessions:
+                    # Check if the last_practiced field is 'Today' or in the date format
+                    last_practiced_str = session['last_practiced']
+
+                    if last_practiced_str == "Today":
+                        last_practiced = datetime.now().date()  # Set last_practiced to today's date
+                    elif last_practiced_str:
+                        last_practiced = datetime.strptime(last_practiced_str, "%Y-%m-%d").date()
+                    else:
+                        last_practiced = None
+
+                    # Add the session to the list
                     self.add_list_item(
                         name=session['name'],
-                        last_practiced=datetime.strptime(session['last_practiced'], "%Y-%m-%d") if session['last_practiced'] else None,
+                        last_practiced=last_practiced,
                         practice_count=session['practice_count']
                     )
 
@@ -111,18 +122,45 @@ class MainApp(MDApp):
 
     def show_item_popup(self, session_name):
         """Show the popup using ItemPopup when the settings icon is clicked."""
-        popup = ItemPopup(session_name, self.handle_action)
-        popup_dialog = popup.create_popup()
-        popup_dialog.open()
+        # Find the last practiced date of the session
+        for child in self.root.ids.item_list.children:
+            if isinstance(child, ThreeLineAvatarIconListItem) and child.text == session_name:
+                # Extract the last practiced date from the secondary text
+                last_practiced_text = child.secondary_text.split(": ")[-1]
+                if last_practiced_text == "Never":
+                    last_practiced_date = None
+                elif last_practiced_text == "Today":
+                    last_practiced_date = datetime.now().date()
+                else:
+                    last_practiced_date = datetime.strptime(last_practiced_text, "%Y-%m-%d").date()
 
-    def handle_action(self, action, session_name):
+                # Initialize the ItemPopup with session_name, last_practiced_date, and callback
+                popup = ItemPopup(session_name, last_practiced_date, self.handle_action)
+                popup_dialog = popup.create_popup()
+                popup_dialog.open()
+                break
+
+    def handle_action(self, action, session_name, selected_date=None):
         """Handle actions selected from the popup."""
         if action == "Delete":
             self.delete_session(session_name)
         elif action == "Add Session":
             self.update_session(session_name)
+        elif action == "Edit Last Practice Date" and selected_date:
+            self.update_last_practiced_date(session_name, selected_date)
         else:
             print(f"{action} selected for session: {session_name}")
+
+    def update_last_practiced_date(self, session_name, selected_date):
+        """Update the last practiced date of a session."""
+        for child in self.root.ids.item_list.children:
+            if isinstance(child, ThreeLineAvatarIconListItem) and child.text == session_name:
+                # Update the last practiced date to the selected date
+                child.secondary_text = f"Last Practiced: {selected_date.strftime('%Y-%m-%d')}"
+                break
+
+        # Save the updated data after changes
+        self.save_data(self.get_sessions_as_dict())
 
     def update_session(self, session_name):
         """Update the session with today's date and increment the practice count."""
