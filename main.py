@@ -10,11 +10,15 @@ from datetime import datetime, timedelta
 from kivy.utils import platform
 from item_popup import ItemPopup  # Import the ItemPopup class
 from kivymd.uix.menu import MDDropdownMenu
+from kivy.utils import platform
 from kivy.metrics import dp
 
 # Import permissions for Android
 if platform == 'android':
     from android.permissions import Permission, request_permissions, check_permission
+    from android import mActivity
+    from android.storage import app_storage_path
+
 
 KV = '''
 MDScreen:
@@ -48,8 +52,6 @@ MDScreen:
 '''
 
 
-
-
 class MainApp(MDApp):
     dialog = None
     settings_dialog = None
@@ -63,40 +65,72 @@ class MainApp(MDApp):
         self.data_file = self.get_data_file_path()
         self.menu = None  # Initialize the menu attribute to None
 
-        if platform == 'android':
-            self.request_android_permissions()  # Request permissions on Android
         return Builder.load_string(KV)
 
     def on_start(self):
         """Called after the app is fully initialized and the UI is ready."""
-        self.load_data()  # Load the session data when the app starts
-        self.populate_ui()  # Populate the UI with data from the runtime dictionary
+        if platform == 'android':
+            self.request_android_permissions()
+            if not check_permission(Permission.WRITE_EXTERNAL_STORAGE):
+                print("MusApp- Permission not granted after request.")
+            else:
+                print("MusApp- Permission granted after request.")
+        self.load_data()
+        self.populate_ui()
 
     def request_android_permissions(self):
         """Request necessary Android permissions."""
-        print("MusApp- Requesting permissions...")
-        try:
-            request_permissions([Permission.WRITE_EXTERNAL_STORAGE, Permission.READ_EXTERNAL_STORAGE])
-            print("MusApp- Permissions requested.")
-        except Exception as e:
-            print(f"MusApp- Error requesting permissions: {e}")
+        if platform == 'android':
+            try:
+                request_permissions([Permission.WRITE_EXTERNAL_STORAGE,
+                                     Permission.READ_EXTERNAL_STORAGE])
+                print("MusApp- Permissions requested.")
+            except Exception as e:
+                print(f"MusApp- Permission request failed: {e}")
 
     def get_data_file_path(self):
         """Return the path to save/load data based on platform compatibility."""
         if platform == 'android':
-            from android.storage import primary_external_storage_path
-            storage_dir = primary_external_storage_path()
-            return os.path.join(storage_dir, 'sessions_data.json')
+            context = mActivity.getApplicationContext()
+            result = context.getExternalFilesDir(None)  # Access app-specific external storage
+            if result:
+                storage_path = str(result)  # Convert to string
+                # Ensure the directory exists
+                if not os.path.exists(storage_path):
+                    os.makedirs(storage_path)
+                return os.path.join(storage_path, 'sessions_data.json')
+            else:
+                print("MusApp- Warning: External storage path not found.")
+                return os.path.join(app_storage_path(), 'sessions_data.json')
         else:
             return os.path.join(os.path.dirname(__file__), 'sessions_data.json')
 
     def save_data(self):
         """Save session data to a JSON file from the runtime dictionary."""
-        with open(self.data_file, 'w') as f:
-            json.dump(self.sessions, f, indent=4)  # Save data, including is_favorite
+        serializable_sessions = {}
+        for name, session in self.sessions.items():
+            try:
+                serializable_sessions[name] = {
+                    'last_practiced': session.get('last_practiced', None).strftime('%Y-%m-%d') if session.get(
+                        'last_practiced') else None,
+                    'practice_count': session.get('practice_count', 0),
+                    'is_favorite': session.get('is_favorite', False)
+                }
+            except Exception as e:
+                print(f"MusApp- Error processing session '{name}': {e}")
+
+        try:
+            with open(self.data_file, 'w') as f:
+                json.dump(serializable_sessions, f, indent=4)  # Save data
+            print("MusApp- Data saved successfully.")
+        except IOError as io_error:
+            print(f"MusApp- IO error while saving data: {io_error}")
+        except Exception as e:
+            print(f"MusApp- Unexpected error while saving data: {e}")
 
     def load_data(self):
         """Load session data from the JSON file into the runtime dictionary."""
+        print("MusApp- Data file path is:", self.data_file)  # Debugging line
         if os.path.exists(self.data_file):
             print("MusApp- Loading data from:", self.data_file)
             with open(self.data_file, 'r') as f:
@@ -130,6 +164,7 @@ class MainApp(MDApp):
             self.add_list_item(session_name, last_practiced_date, practice_count, is_favorite)
 
     def add_list_item(self, name, last_practiced=None, practice_count=0, is_favorite=False):
+        print("MusApp- adding list item...")
         """Add a new session to the UI and runtime dictionary."""
         # Format the subtitle depending on the last_practiced value
         last_practiced_text = self.format_last_practiced(last_practiced)
@@ -160,8 +195,10 @@ class MainApp(MDApp):
         # Add the trailing icon to the list item
         list_item.add_widget(trailing_icon)
 
+
         # Add the list item to the MDList
         self.root.ids.item_list.add_widget(list_item)
+        print("MusApp- adding list added widget...")
 
         # Ensure the runtime dictionary is updated with the favorite state
         self.sessions[name] = {
@@ -171,6 +208,7 @@ class MainApp(MDApp):
         }
 
         # Save data whenever a new session is added or updated
+        print("MusApp- adding list and saving...")
         self.save_data()
 
     def toggle_favorite(self, icon, session_name):

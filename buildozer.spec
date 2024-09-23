@@ -31,13 +31,13 @@ fullscreen = 1
 android.permissions = WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
 
 # (int) Minimum API level for Android
-android.minapi = 21
+android.minapi = 24
 
 # (int) Target API level for Android
-android.api = 33
+android.api = 31
 
 # (int) NDK API level for Android (suggested to raise it if you encounter issues)
-android.ndk_api = 21
+android.ndk_api = 24
 
 # (list) Supported architectures for Android
 android.archs = arm64-v8a, armeabi-v7a
