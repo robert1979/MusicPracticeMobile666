@@ -34,6 +34,7 @@ class MainApp(MDApp):
     dialog = None
     settings_dialog = None
     data_file = None
+    sessions = {}  # Runtime dictionary for storing session data
 
     def build(self):
         self.theme_cls.primary_palette = "Blue"  # Set the primary color palette
@@ -44,6 +45,7 @@ class MainApp(MDApp):
     def on_start(self):
         """Called after the app is fully initialized and the UI is ready."""
         self.load_data()  # Load the session data when the app starts
+        self.populate_ui()  # Populate the UI with data from the runtime dictionary
 
     def get_data_file_path(self):
         """Return the path to save/load data based on platform compatibility."""
@@ -52,51 +54,28 @@ class MainApp(MDApp):
         else:
             return os.path.join(os.path.dirname(__file__), 'sessions_data.json')
 
-    def save_data(self, data):
-        """Save session data to a JSON file."""
+    def save_data(self):
+        """Save session data to a JSON file from the runtime dictionary."""
         with open(self.data_file, 'w') as f:
-            json.dump(data, f)
+            json.dump(self.sessions, f)
 
     def load_data(self):
-        """Load session data from the JSON file and populate the list."""
+        """Load session data from the JSON file into the runtime dictionary."""
         if os.path.exists(self.data_file):
             with open(self.data_file, 'r') as f:
-                sessions = json.load(f)
-                for session in sessions:
-                    # Check if the last_practiced field is 'Today' or in the date format
-                    last_practiced_str = session['last_practiced']
+                self.sessions = json.load(f)
 
-                    if last_practiced_str == "Today":
-                        last_practiced = datetime.now().date()  # Set last_practiced to today's date
-                    elif last_practiced_str:
-                        last_practiced = datetime.strptime(last_practiced_str, "%Y-%m-%d").date()
-                    else:
-                        last_practiced = None
-
-                    # Add the session to the list
-                    self.add_list_item(
-                        name=session['name'],
-                        last_practiced=last_practiced,
-                        practice_count=session['practice_count']
-                    )
-
-    def get_sessions_as_dict(self):
-        """Get the current sessions as a list of dictionaries."""
-        sessions = []
-        for child in self.root.ids.item_list.children:
-            if isinstance(child, ThreeLineAvatarIconListItem):
-                name = child.text
-                last_practiced_text = child.secondary_text.split(": ")[-1]
-                practice_count = int(child.tertiary_text.split(": ")[-1])
-                last_practiced = None if last_practiced_text == 'Never' else last_practiced_text
-                sessions.append({
-                    'name': name,
-                    'last_practiced': last_practiced,
-                    'practice_count': practice_count
-                })
-        return sessions
+    def populate_ui(self):
+        """Populate the UI from the session data in the runtime dictionary."""
+        self.root.ids.item_list.clear_widgets()  # Clear existing UI items
+        for session_name, session_data in self.sessions.items():
+            last_practiced = session_data.get('last_practiced')
+            practice_count = session_data.get('practice_count', 0)
+            last_practiced_date = None if last_practiced is None else datetime.strptime(last_practiced, "%Y-%m-%d").date()
+            self.add_list_item(session_name, last_practiced_date, practice_count)
 
     def add_list_item(self, name, last_practiced=None, practice_count=0):
+        """Add a new session to the UI and runtime dictionary."""
         # Format the subtitle depending on the last_practiced value
         last_practiced_text = self.format_last_practiced(last_practiced)
 
@@ -117,28 +96,25 @@ class MainApp(MDApp):
         # Add the list item to the MDList
         self.root.ids.item_list.add_widget(list_item)
 
+        # Update the runtime dictionary with the new session
+        self.sessions[name] = {
+            'last_practiced': last_practiced.strftime('%Y-%m-%d') if last_practiced else None,
+            'practice_count': practice_count
+        }
+
         # Save data whenever a new session is added
-        self.save_data(self.get_sessions_as_dict())
+        self.save_data()
 
     def show_item_popup(self, session_name):
         """Show the popup using ItemPopup when the settings icon is clicked."""
-        # Find the last practiced date of the session
-        for child in self.root.ids.item_list.children:
-            if isinstance(child, ThreeLineAvatarIconListItem) and child.text == session_name:
-                # Extract the last practiced date from the secondary text
-                last_practiced_text = child.secondary_text.split(": ")[-1]
-                if last_practiced_text == "Never":
-                    last_practiced_date = None
-                elif last_practiced_text == "Today":
-                    last_practiced_date = datetime.now().date()
-                else:
-                    last_practiced_date = datetime.strptime(last_practiced_text, "%Y-%m-%d").date()
+        session_data = self.sessions.get(session_name, {})
+        last_practiced_str = session_data.get('last_practiced')
+        last_practiced_date = None if last_practiced_str is None else datetime.strptime(last_practiced_str, "%Y-%m-%d").date()
 
-                # Initialize the ItemPopup with session_name, last_practiced_date, and callback
-                popup = ItemPopup(session_name, last_practiced_date, self.handle_action)
-                popup_dialog = popup.create_popup()
-                popup_dialog.open()
-                break
+        # Initialize the ItemPopup with the actual date
+        popup = ItemPopup(session_name, last_practiced_date, self.handle_action)
+        popup_dialog = popup.create_popup()
+        popup_dialog.open()
 
     def handle_action(self, action, session_name, selected_date=None):
         """Handle actions selected from the popup."""
@@ -148,69 +124,85 @@ class MainApp(MDApp):
             self.update_session(session_name)
         elif action == "Edit Last Practice Date" and selected_date:
             self.update_last_practiced_date(session_name, selected_date)
-        else:
-            print(f"{action} selected for session: {session_name}")
 
     def update_last_practiced_date(self, session_name, selected_date):
         """Update the last practiced date of a session."""
+        # Update the runtime dictionary
+        if session_name in self.sessions:
+            self.sessions[session_name]['last_practiced'] = selected_date.strftime('%Y-%m-%d')
+
+        # Format the selected date properly (e.g., "Today", "X days ago")
+        formatted_last_practiced = self.format_last_practiced(selected_date)
+
+        # Update the UI
         for child in self.root.ids.item_list.children:
             if isinstance(child, ThreeLineAvatarIconListItem) and child.text == session_name:
-                # Update the last practiced date to the selected date
-                child.secondary_text = f"Last Practiced: {selected_date.strftime('%Y-%m-%d')}"
+                # Update the last practiced date in the UI with the formatted text
+                child.secondary_text = f"Last Practiced: {formatted_last_practiced}"
                 break
 
         # Save the updated data after changes
-        self.save_data(self.get_sessions_as_dict())
+        self.save_data()
 
     def update_session(self, session_name):
         """Update the session with today's date and increment the practice count."""
         today = datetime.now().date()
 
-        # Find the session by name and update it
+        # Update the runtime dictionary
+        if session_name in self.sessions:
+            self.sessions[session_name]['last_practiced'] = today.strftime('%Y-%m-%d')
+            self.sessions[session_name]['practice_count'] += 1
+
+        # Update the UI
         for child in self.root.ids.item_list.children:
             if isinstance(child, ThreeLineAvatarIconListItem) and child.text == session_name:
                 # Update last practiced date to today
-                child.secondary_text = f"Last Practiced: Today"
-
+                child.secondary_text = "Last Practiced: Today"
                 # Increment practice count
                 current_count = int(child.tertiary_text.split(": ")[-1])
                 child.tertiary_text = f"Practice Count: {current_count + 1}"
-
                 break
 
         # Save the updated data after changes
-        self.save_data(self.get_sessions_as_dict())
+        self.save_data()
 
     def delete_session(self, session_name):
         """Delete a session by its name."""
-        # Find the session by name and remove it from the list
+        # Remove from the runtime dictionary
+        if session_name in self.sessions:
+            del self.sessions[session_name]
+
+        # Remove from the UI
         for child in self.root.ids.item_list.children[:]:
             if isinstance(child, ThreeLineAvatarIconListItem) and child.text == session_name:
                 self.root.ids.item_list.remove_widget(child)
                 break
+
         # Save the updated data after deletion
-        self.save_data(self.get_sessions_as_dict())
+        self.save_data()
 
     def format_last_practiced(self, last_practiced):
-        """Format the 'Last Practiced' field."""
+        """Format the 'Last Practiced' field with proper day/day(s) usage."""
         if not last_practiced:
-            return "Never"
+            return "Never"  # If no date is set
 
         today = datetime.now().date()
         days_elapsed = (today - last_practiced).days
 
         if days_elapsed == 0:
-            return "Today"
-        elif days_elapsed > 0:
-            return f"{days_elapsed} days ago"
+            return "Today"  # If last practiced is today
+        elif days_elapsed == 1:
+            return "1 day ago"  # Singular form for 1 day
+        elif days_elapsed > 1:
+            return f"{days_elapsed} days ago"  # Plural form for more than 1 day
         else:
-            return "Invalid date"
+            return "Invalid date"  # In case there's an issue with future dates
 
     def on_menu_button(self):
         print("Menu button pressed")
 
     def on_add_button(self):
-        # Show a dialog to add a new name
+        """Show a dialog to add a new session name."""
         if not self.dialog:
             self.dialog = MDDialog(
                 title="Add Session",
@@ -234,10 +226,10 @@ class MainApp(MDApp):
         self.dialog.dismiss()
 
     def add_session(self, obj):
-        # Get the input from the dialog
+        """Add a session based on user input from the dialog."""
         name_input = self.dialog.content_cls.text.strip()
         if name_input:
-            # Add the new session with name, and last practiced as "Unset"
+            # Add the new session to the runtime dictionary and UI
             self.add_list_item(name=name_input, last_practiced=None)
         self.dialog.dismiss()
 

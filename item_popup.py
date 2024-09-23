@@ -71,4 +71,5 @@ class ItemPopup:
             dialog.dismiss()
         if self.dialog:
             self.dialog.dismiss()
+        # Call the callback function with the session name and the action
         self.callback(action, self.session_name)
