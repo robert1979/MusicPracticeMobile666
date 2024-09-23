@@ -11,6 +11,7 @@ from kivy.utils import platform
 from kivy.storage.jsonstore import JsonStore  # Import JsonStore
 from item_popup import ItemPopup  # Import the ItemPopup class
 from kivymd.uix.menu import MDDropdownMenu
+from kivy.utils import get_color_from_hex
 from kivy.metrics import dp
 
 # Import permissions for Android
@@ -18,6 +19,9 @@ if platform == 'android':
     from android.permissions import Permission, request_permissions, check_permission
     from android import mActivity
     from android.storage import app_storage_path
+
+# Define global list of 4 colors
+SESSION_COLORS = ['#FFCDD2', '#C8E6C9', '#BBDEFB', '#FFF9C4']  # Red, Green, Blue, Yellow
 
 
 KV = '''
@@ -98,7 +102,8 @@ class MainApp(MDApp):
                 serializable_sessions[name] = {
                     'last_practiced': session.get('last_practiced', None),
                     'practice_count': session.get('practice_count', 0),
-                    'is_favorite': session.get('is_favorite', False)
+                    'is_favorite': session.get('is_favorite', False),
+                    'session_type': session.get('session_type', 0)  # Default to 0 if not present
                 }
             except Exception as e:
                 print(f"MusApp- Error processing session '{name}': {e}")
@@ -117,77 +122,71 @@ class MainApp(MDApp):
                 last_practiced = session_data.get('last_practiced')
                 practice_count = session_data.get('practice_count', 0)
                 is_favorite = session_data.get('is_favorite', False)
+                session_type = session_data.get('session_type', 0)  # Default to 0 if missing
 
                 # Convert last_practiced to date
                 last_practiced_date = None if last_practiced is None else datetime.strptime(last_practiced,
                                                                                             "%Y-%m-%d").date()
 
                 # Add the session to the UI
-                self.add_list_item(session_name, last_practiced_date, practice_count, is_favorite)
+                self.add_list_item(session_name, last_practiced_date, practice_count, is_favorite, session_type)
             print("MusApp- Data loaded:", self.sessions)
         else:
             print("MusApp- No existing session data found.")
 
     def populate_ui(self):
-        print("MusApp- Populating UI with session data...")
         """Populate the UI from the session data in the runtime dictionary."""
         self.root.ids.item_list.clear_widgets()  # Clear existing UI items
         for session_name, session_data in self.sessions.items():
             last_practiced = session_data.get('last_practiced')
             practice_count = session_data.get('practice_count', 0)
             is_favorite = session_data.get('is_favorite', False)  # Get the favorite state
+            session_type = session_data.get('session_type', 0)  # Get session type, default to 0 if not found
+
             last_practiced_date = None if last_practiced is None else datetime.strptime(last_practiced,
                                                                                         "%Y-%m-%d").date()
 
-            # Pass the is_favorite value to add_list_item
-            self.add_list_item(session_name, last_practiced_date, practice_count, is_favorite)
+            # Pass the is_favorite and session_type value to add_list_item
+            self.add_list_item(session_name, last_practiced_date, practice_count, is_favorite, session_type)
 
-    def add_list_item(self, name, last_practiced=None, practice_count=0, is_favorite=False):
-        print("MusApp- adding list item...")
+    def add_list_item(self, name, last_practiced=None, practice_count=0, is_favorite=False, session_type=0):
         """Add a new session to the UI and runtime dictionary."""
-        # Format the subtitle depending on the last_practiced value
         last_practiced_text = self.format_last_practiced(last_practiced)
+
+        # Select background color based on session_type (default to 0 if session_type is out of range)
+        background_color = SESSION_COLORS[session_type % len(SESSION_COLORS)]
 
         # Create a new ThreeLine list item with Name, Last Practiced, and Practice Count
         list_item = ThreeLineAvatarIconListItem(
             text=name,
             secondary_text=f"Last Practiced: {last_practiced_text}",
-            tertiary_text=f"Practice Count: {practice_count}"
+            tertiary_text=f"Practice Count: {practice_count}, Session Type: {session_type}",
+            bg_color=get_color_from_hex(background_color)  # Set background color
         )
 
-        # Make the name text bold
         list_item.ids._lbl_primary.bold = True
 
-        # Create the left star icon for favorite using IconLeftWidget
+        # Favorite icon
         favorite_icon = IconLeftWidget(icon="star" if is_favorite else "star-outline")
-
-        # Bind the favorite toggle functionality to the icon
         favorite_icon.bind(on_release=lambda x: self.toggle_favorite(favorite_icon, name))
-
-        # Add the favorite icon to the left side of the list item
         list_item.add_widget(favorite_icon)
 
-        # Create the trailing vertical dots icon (settings)
+        # Trailing vertical dots icon (settings)
         trailing_icon = IconRightWidget(icon="dots-vertical")
         trailing_icon.bind(on_release=lambda x: self.show_item_popup(name))
-
-        # Add the trailing icon to the list item
         list_item.add_widget(trailing_icon)
-
 
         # Add the list item to the MDList
         self.root.ids.item_list.add_widget(list_item)
-        print("MusApp- adding list added widget...")
 
-        # Ensure the runtime dictionary is updated with the favorite state
+        # Ensure the runtime dictionary is updated with the favorite state and session_type
         self.sessions[name] = {
             'last_practiced': last_practiced.strftime('%Y-%m-%d') if last_practiced else None,
             'practice_count': practice_count,
-            'is_favorite': is_favorite  # Save the favorite status explicitly
+            'is_favorite': is_favorite,
+            'session_type': session_type  # Include session_type in the saved data
         }
 
-        # Save data whenever a new session is added or updated
-        print("MusApp- adding list and saving...")
         self.save_data()
 
     def toggle_favorite(self, icon, session_name):
@@ -249,23 +248,12 @@ class MainApp(MDApp):
         """Update the session with today's date and increment the practice count."""
         today = datetime.now().date()
 
-        # Update the runtime dictionary
         if session_name in self.sessions:
             self.sessions[session_name]['last_practiced'] = today.strftime('%Y-%m-%d')
             self.sessions[session_name]['practice_count'] += 1
+            # Leave session_type unchanged during this operation
 
-        # Update the UI
-        for child in self.root.ids.item_list.children:
-            if isinstance(child, ThreeLineAvatarIconListItem) and child.text == session_name:
-                # Update last practiced date to today
-                child.secondary_text = "Last Practiced: Today"
-                # Increment practice count
-                current_count = int(child.tertiary_text.split(": ")[-1])
-                child.tertiary_text = f"Practice Count: {current_count + 1}"
-                break
-
-        # Save the updated data after changes
-        self.save_data()
+        self.populate_ui()
 
     def delete_session(self, session_name):
         """Delete a session by its name."""
@@ -283,7 +271,7 @@ class MainApp(MDApp):
         self.save_data()
 
     def format_last_practiced(self, last_practiced):
-        """Format the 'Last Practiced' field with proper day/day(s) usage."""
+        """Format the 'Last Practiced' field."""
         if not last_practiced:
             return "Never"  # If no date is set
 
@@ -291,13 +279,11 @@ class MainApp(MDApp):
         days_elapsed = (today - last_practiced).days
 
         if days_elapsed == 0:
-            return "Today"  # If last practiced is today
+            return "Today"
         elif days_elapsed == 1:
-            return "1 day ago"  # Singular form for 1 day
-        elif days_elapsed > 1:
-            return f"{days_elapsed} days ago"  # Plural form for more than 1 day
+            return "1 day ago"
         else:
-            return "Invalid date"  # In case there's an issue with future dates
+            return f"{days_elapsed} days ago"
 
     def on_add_button(self):
         """Show a dialog to add a new session name."""
