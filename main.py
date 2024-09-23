@@ -1,6 +1,6 @@
 from kivy.lang import Builder
 from kivymd.app import MDApp
-from kivymd.uix.list import TwoLineAvatarIconListItem, IconRightWidget
+from kivymd.uix.list import ThreeLineAvatarIconListItem, IconRightWidget
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton
 from kivymd.uix.textfield import MDTextField
@@ -33,12 +33,16 @@ class MainApp(MDApp):
         self.theme_cls.theme_style = "Light"  # Set the theme to Light or Dark
         return Builder.load_string(KV)
 
-    def add_list_item(self, name, last_practiced=None):
+    def add_list_item(self, name, last_practiced=None, practice_count=0):
         # Format the subtitle depending on the last_practiced value
-        subtitle = self.format_last_practiced(last_practiced)
+        last_practiced_text = self.format_last_practiced(last_practiced)
 
-        # Create a new TwoLine list item with Name as header and Last Practiced as subtitle
-        list_item = TwoLineAvatarIconListItem(text=name, secondary_text=subtitle)
+        # Create a new ThreeLine list item with Name, Last Practiced, and Practice Count
+        list_item = ThreeLineAvatarIconListItem(
+            text=name,
+            secondary_text=f"Last Practiced: {last_practiced_text}",
+            tertiary_text=f"Practice Count: {practice_count}"
+        )
 
         # Create the trailing vertical dots icon (settings)
         trailing_icon = IconRightWidget(icon="dots-vertical")
@@ -53,17 +57,17 @@ class MainApp(MDApp):
     def format_last_practiced(self, last_practiced):
         """Format the 'Last Practiced' field."""
         if not last_practiced:
-            return "Last Practiced: Never"
+            return "Never"
 
         today = datetime.now().date()
         days_elapsed = (today - last_practiced).days
 
         if days_elapsed == 0:
-            return "Last Practiced: Today"
+            return "Today"
         elif days_elapsed > 0:
-            return f"Last Practiced: {days_elapsed} days ago"
+            return f"{days_elapsed} days ago"
         else:
-            return "Last Practiced: Invalid date"
+            return "Invalid date"
 
     def on_menu_button(self):
         print("Menu button pressed")
