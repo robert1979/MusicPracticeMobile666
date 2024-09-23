@@ -1,3 +1,5 @@
+from operator import index
+
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDRaisedButton, MDIconButton
 from kivymd.uix.pickers import MDDatePicker
@@ -53,15 +55,12 @@ class ItemPopup:
                 height='48dp'
             )
 
-            # Define colors for the buttons using the passed session_colors
+            # Create each button individually and bind on_release event afterward
             for index, color in enumerate(self.session_colors):
-                color_button = MDRaisedButton(
-                    md_bg_color=get_color_from_hex(color),
-                    size_hint=(1, 1),
-                    on_release=lambda x, idx=index: self.on_color_button_press(idx)  # Pass index of color
-                )
+                print(color)
+                color_button = self.create_color_button(color)  # Create button with specific color
                 color_button_layout.add_widget(color_button)
-                self.color_buttons.append(color_button)
+                color_button.bind(on_release=lambda btn, idx=index: self.on_color_button_press(idx))  # Bind event
 
             # Highlight the current session_type button
             self.highlight_selected_button(self.session_type)
@@ -101,6 +100,13 @@ class ItemPopup:
 
         return self.dialog
 
+    def create_color_button(self, color):
+        """Helper function to create a color button."""
+        return MDRaisedButton(
+            md_bg_color=get_color_from_hex(color),
+            size_hint=(1, 1)
+        )
+
     def highlight_selected_button(self, selected_index):
         """Highlight the selected button corresponding to the session_type."""
         for idx, button in enumerate(self.color_buttons):
@@ -111,6 +117,7 @@ class ItemPopup:
     def on_color_button_press(self, selected_index):
         """Handle color button press and update the session type."""
         # Highlight the selected button
+        print(selected_index)
         self.highlight_selected_button(selected_index)
 
         # Update the session type and pass it back to the main app
