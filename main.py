@@ -307,17 +307,21 @@ class MainApp(MDApp):
                 type="custom",
                 content_cls=MDTextField(
                     hint_text="Enter Name",
-                    required=True
+                    required=True,
+                    text="",  # Initialize with an empty text field
                 ),
                 buttons=[
                     MDFlatButton(
-                        text="CANCEL", on_release=self.close_dialog
+                        text="CANCEL", on_release=self.close_dialog  # Correctly assign close_dialog
                     ),
                     MDFlatButton(
                         text="ADD", on_release=self.add_session
                     ),
                 ],
             )
+        else:
+            # Clear the text field each time the dialog is opened
+            self.dialog.content_cls.text = ""
         self.dialog.open()
 
     def close_dialog(self, obj):
@@ -329,7 +333,7 @@ class MainApp(MDApp):
         if name_input:
             # Add the new session to the runtime dictionary and UI
             self.add_list_item(name=name_input, last_practiced=None)
-        self.dialog.dismiss()
+        self.dialog.dismiss()  # Dismiss after adding the session
 
     def show_settings_menu(self, button):
         """Display a dropdown menu for settings with 'About' and 'Reset' options."""
@@ -385,10 +389,10 @@ class MainApp(MDApp):
         self.settings_menu.dismiss()  # Close the settings dropdown menu
         reset_dialog.open()
 
-    def close_dialog(self, obj):
+    def close_dialog(self, obj=None):
         """Close the current dialog."""
-        if self.settings_dialog:
-            self.settings_dialog.dismiss()
+        if self.dialog:
+            self.dialog.dismiss()  # Ensure the add session dialog is dismissed
 
     def on_sort_button(self, button):
         """Display a dropdown menu with sorting options."""
