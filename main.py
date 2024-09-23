@@ -57,6 +57,7 @@ class MainApp(MDApp):
     sessions = {}  # Runtime dictionary for storing session data
 
     def build(self):
+        print("MusApp- Building the application UI...")
         self.theme_cls.primary_palette = "Blue"  # Set the primary color palette
         self.theme_cls.theme_style = "Light"  # Set the theme to Light or Dark
         self.data_file = self.get_data_file_path()
@@ -73,11 +74,12 @@ class MainApp(MDApp):
 
     def request_android_permissions(self):
         """Request necessary Android permissions."""
+        print("MusApp- Requesting permissions...")
         try:
             request_permissions([Permission.WRITE_EXTERNAL_STORAGE, Permission.READ_EXTERNAL_STORAGE])
-            print("Permissions requested.")
+            print("MusApp- Permissions requested.")
         except Exception as e:
-            print(f"Error requesting permissions: {e}")
+            print(f"MusApp- Error requesting permissions: {e}")
 
     def get_data_file_path(self):
         """Return the path to save/load data based on platform compatibility."""
@@ -96,6 +98,7 @@ class MainApp(MDApp):
     def load_data(self):
         """Load session data from the JSON file into the runtime dictionary."""
         if os.path.exists(self.data_file):
+            print("MusApp- Loading data from:", self.data_file)
             with open(self.data_file, 'r') as f:
                 self.sessions = json.load(f)
 
@@ -110,8 +113,10 @@ class MainApp(MDApp):
 
                 # Add the session to the UI with the favorite state
                 self.add_list_item(session_name, last_practiced_date, practice_count, is_favorite)
+                print("MusApp- Data loaded:", self.sessions)
 
     def populate_ui(self):
+        print("MusApp- Populating UI with session data...")
         """Populate the UI from the session data in the runtime dictionary."""
         self.root.ids.item_list.clear_widgets()  # Clear existing UI items
         for session_name, session_data in self.sessions.items():

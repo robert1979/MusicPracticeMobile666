@@ -19,7 +19,7 @@ source.include_exts = py,png,jpg,kv,atlas
 version = 0.1
 
 # (list) Application requirements
-requirements = python3==3.11, kivy, kivymd, android
+requirements = python3, kivy, kivymd, android, pillow
 
 # (str) Supported orientation
 orientation = portrait
