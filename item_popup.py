@@ -20,44 +20,51 @@ class ItemPopup:
         self.color_buttons = []
 
     def create_popup(self):
-        """Create the popup with icon buttons for 'Add Session', 'Edit Last Practice Date', and 'Delete'."""
+        """Create the popup with raised buttons for 'Add Session', 'Edit Last Practice Date', 'Delete', and color buttons."""
         if not self.dialog:
-            # Add Session Button with Icon
-            add_button = MDIconButton(
-                icon="plus",
-                size_hint=(1, None),
+            # Add Session Button with Text
+            add_button = MDRaisedButton(
+                text="Add Session",
+                size_hint=(None, None),
+                width="200dp",
                 height="48dp",
+                pos_hint={'center_x': 0.5},
                 on_release=lambda x: self.show_add_session_confirmation()
             )
 
-            # Edit Practice Date Button with Icon
-            edit_button = MDIconButton(
-                icon="pencil",
-                size_hint=(1, None),
+            # Edit Practice Date Button with Text
+            edit_button = MDRaisedButton(
+                text="Edit Last Practice Date",
+                size_hint=(None, None),
+                width="200dp",
                 height="48dp",
+                pos_hint={'center_x': 0.5},
                 on_release=lambda x: self.show_date_picker()
             )
             if self.last_practiced_date is None:
                 edit_button.disabled = True
 
-            # Delete Button with Icon
-            delete_button = MDIconButton(
-                icon="delete",
-                size_hint=(1, None),
-                height="44dp",
+            # Delete Button with Text
+            delete_button = MDRaisedButton(
+                text="Delete",
+                size_hint=(None, None),
+                width="200dp",
+                height="48dp",
+                pos_hint={'center_x': 0.5},
                 on_release=lambda x: self.on_button_press("Delete")
             )
 
-            # Create a horizontal layout for the additional 4 colored buttons
+            # Create a horizontal layout for the 4 colored buttons
             color_button_layout = BoxLayout(
                 orientation='horizontal',
                 size_hint=(1, None),
-                height='48dp'
+                height='48dp',
+                padding=[10, 0, 10, 0],
+                spacing=10
             )
 
             # Create each button individually and bind on_release event afterward
             for index, color in enumerate(self.session_colors):
-                print(color)
                 color_button = self.create_color_button(color)  # Create button with specific color
                 color_button_layout.add_widget(color_button)
                 color_button.bind(on_release=lambda btn, idx=index: self.on_color_button_press(idx))  # Bind event
@@ -65,27 +72,17 @@ class ItemPopup:
             # Highlight the current session_type button
             self.highlight_selected_button(self.session_type)
 
-            # Create the layout for the other buttons (Add, Edit, Delete)
-            button_layout = BoxLayout(
-                orientation='horizontal',
-                spacing=10,
-                padding=10,
-                size_hint=(1, None),
-                height='48dp',
-                pos_hint={'center_x': 0.5}
-            )
-            button_layout.add_widget(add_button)
-            button_layout.add_widget(edit_button)
-            button_layout.add_widget(delete_button)
-
-            # Main layout to combine both action buttons and color buttons
+            # Main layout to combine all action buttons and color buttons (stacked vertically)
             main_layout = BoxLayout(
                 orientation='vertical',
                 size_hint=(1, None),
-                height='200dp',
-                pos_hint={'center_x': 0.5, 'center_y': 0.5},
+                padding=10,
+                spacing=10,
+                pos_hint={'center_x': 0.5}
             )
-            main_layout.add_widget(button_layout)
+            main_layout.add_widget(add_button)
+            main_layout.add_widget(edit_button)
+            main_layout.add_widget(delete_button)
             main_layout.add_widget(color_button_layout)
 
             # Create the dialog with the custom button layout
@@ -94,7 +91,7 @@ class ItemPopup:
                 type="custom",
                 content_cls=main_layout,
                 size_hint=(0.8, None),
-                height='200dp',
+                height='400dp',  # Adjusted to fit the content
                 buttons=[],
             )
 

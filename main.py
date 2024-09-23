@@ -398,7 +398,7 @@ class MainApp(MDApp):
             self.dialog.dismiss()  # Ensure the add session dialog is dismissed
 
     def on_sort_button(self, button):
-        """Display a dropdown menu with sorting options."""
+        """Display a dropdown menu with sorting options, including color buttons for session_type sorting."""
         if not hasattr(self, 'sort_menu'):
             menu_items = [
                 {
@@ -422,12 +422,46 @@ class MainApp(MDApp):
                     "on_release": lambda: self.sort_sessions("favourites")
                 },
             ]
+
+            # Add color buttons to the menu for session_type sorting
+            for index, color in enumerate(SESSION_COLORS):
+                menu_items.append(
+                    {
+                        "viewclass": "MDFloatingActionButton",
+                        "icon": "",
+                        "height": 30,
+                        "md_bg_color": get_color_from_hex(color),
+                        "on_release": lambda x=index: self.sort_sessions_by_color(x),
+                        "size": (dp(48), dp(28)),  # Adjust the size to fit more items
+                    }
+                )
+
             self.sort_menu = MDDropdownMenu(
                 caller=button,
                 items=menu_items,
                 width_mult=4,
+                max_height=400
             )
         self.sort_menu.open()
+
+    def sort_sessions_by_color(self, color_index):
+        """Sort the sessions based on the selected session_type (color index)."""
+        sorted_sessions = sorted(
+            self.sessions.items(), key=lambda x: (x[1]['session_type'] == color_index, x[0].lower()), reverse=True
+        )
+
+        # Clear the current list and re-populate it with the sorted sessions
+        self.root.ids.item_list.clear_widgets()
+        for session_name, session_data in sorted_sessions:
+            last_practiced = session_data.get('last_practiced')
+            practice_count = session_data.get('practice_count', 0)
+            is_favorite = session_data.get('is_favorite', False)
+            session_type = session_data.get('session_type', 0)
+            last_practiced_date = None if last_practiced is None else datetime.strptime(last_practiced,
+                                                                                        "%Y-%m-%d").date()
+            self.add_list_item(session_name, last_practiced_date, practice_count, is_favorite, session_type)
+
+        self.sort_menu.dismiss()  # Close the sorting menu after sorting
 
     def sort_sessions(self, criteria):
         """Sort the sessions based on the selected criteria."""
@@ -440,6 +474,11 @@ class MainApp(MDApp):
         elif criteria == "favourites":
             # Sort by is_favorite (True first), and then alphabetically
             sorted_sessions = sorted(self.sessions.items(), key=lambda x: (not x[1]['is_favorite'], x[0].lower()))
+        elif criteria.startswith("color"):
+            # Sort by session_type based on color index
+            session_type_index = int(criteria.split("_")[-1])  # Extract the color index from the criteria
+            sorted_sessions = sorted(self.sessions.items(), key=lambda x: x[1]['session_type'] == session_type_index,
+                                     reverse=True)
 
         # Clear the current list and re-populate it with the sorted sessions
         self.root.ids.item_list.clear_widgets()
@@ -447,9 +486,10 @@ class MainApp(MDApp):
             last_practiced = session_data.get('last_practiced')
             practice_count = session_data.get('practice_count', 0)
             is_favorite = session_data.get('is_favorite', False)
+            session_type = session_data.get('session_type', 0)
             last_practiced_date = None if last_practiced is None else datetime.strptime(last_practiced,
                                                                                         "%Y-%m-%d").date()
-            self.add_list_item(session_name, last_practiced_date, practice_count, is_favorite)
+            self.add_list_item(session_name, last_practiced_date, practice_count, is_favorite, session_type)
 
         self.sort_menu.dismiss()  # Close the sorting menu after sorting
 
