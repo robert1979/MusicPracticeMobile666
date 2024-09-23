@@ -2,7 +2,7 @@ import json
 import os
 from kivy.lang import Builder
 from kivymd.app import MDApp
-from kivymd.uix.list import ThreeLineAvatarIconListItem, IconRightWidget
+from kivymd.uix.list import ThreeLineAvatarIconListItem, IconRightWidget,IconLeftWidget
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton
 from kivymd.uix.textfield import MDTextField
@@ -103,8 +103,17 @@ class MainApp(MDApp):
             tertiary_text=f"Practice Count: {practice_count}"
         )
 
-        # Make the name text bold by accessing the primary label
+        # Make the name text bold
         list_item.ids._lbl_primary.bold = True
+
+        # Create the left star icon for favorite using IconLeftWidget
+        favorite_icon = IconLeftWidget(icon="star-outline")  # Default to outlined star
+
+        # Bind the favorite toggle functionality to the icon
+        favorite_icon.bind(on_release=lambda x: self.toggle_favorite(favorite_icon))
+
+        # Add the favorite icon to the left side of the list item
+        list_item.add_widget(favorite_icon)
 
         # Create the trailing vertical dots icon (settings)
         trailing_icon = IconRightWidget(icon="dots-vertical")
@@ -119,11 +128,19 @@ class MainApp(MDApp):
         # Update the runtime dictionary with the new session
         self.sessions[name] = {
             'last_practiced': last_practiced.strftime('%Y-%m-%d') if last_practiced else None,
-            'practice_count': practice_count
+            'practice_count': practice_count,
+            'favorite': False  # Add a favorite state to the runtime data
         }
 
         # Save data whenever a new session is added
         self.save_data()
+
+    def toggle_favorite(self, icon):
+        """Toggle the favorite state of the session."""
+        if icon.icon == "star-outline":
+            icon.icon = "star"  # Switch to filled star if not favorited
+        else:
+            icon.icon = "star-outline"  # Switch back to outlined star
 
     def show_item_popup(self, session_name):
         """Show the popup using ItemPopup when the settings icon is clicked."""
