@@ -23,7 +23,7 @@ class ItemPopup:
                 edit_button.disabled = True
 
             self.dialog = MDDialog(
-                title=f"Options for {self.session_name}",
+                title=f"{self.session_name}",
                 type="confirmation",
                 buttons=[
                     MDFlatButton(

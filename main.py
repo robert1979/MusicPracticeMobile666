@@ -20,7 +20,7 @@ MDScreen:
         orientation: 'vertical'
 
         MDTopAppBar:
-            title: "Sessions"
+            title: "Practice Sessions"
             left_action_items: [["menu", lambda x: app.show_settings_menu(x)]]
             right_action_items: [["sort", lambda x: app.on_sort_button(x)]]
             elevation: 10
@@ -102,6 +102,9 @@ class MainApp(MDApp):
             secondary_text=f"Last Practiced: {last_practiced_text}",
             tertiary_text=f"Practice Count: {practice_count}"
         )
+
+        # Make the name text bold by accessing the primary label
+        list_item.ids._lbl_primary.bold = True
 
         # Create the trailing vertical dots icon (settings)
         trailing_icon = IconRightWidget(icon="dots-vertical")
