@@ -52,7 +52,6 @@ class ItemPopup:
             # Create a horizontal layout for the additional 4 colored buttons
             color_button_layout = BoxLayout(
                 orientation='horizontal',  # Children laid out horizontally
-                spacing=0,
                 size_hint=(1, None),  # Disable size hints to allow manual control
                 height='48dp'  # Set the desired height
             )
@@ -60,7 +59,7 @@ class ItemPopup:
             # Define colors for the buttons (using hex colors)
             colors = ['#FF0000', '#0000FF', '#00FF00', '#FFFF00']  # Red, Blue, Green, Yellow
             for color in colors:
-                color_button = MDFloatingActionButton(
+                color_button = MDRaisedButton(
                     md_bg_color=get_color_from_hex(color),
                     size_hint=(1, 1),
                     on_release=lambda x, c=color: self.on_color_button_press(c)  # Corrected lambda with default argument
@@ -87,7 +86,7 @@ class ItemPopup:
                 orientation='vertical',  # Stack widgets vertically
                 size_hint=(1, None),  # Disable size hints for manual control
                 height='200dp',  # Adjust height to fit content
-                pos_hint={'center_x': 0.5, 'center_y': 0}  # Center the main layout both horizontally and vertically
+                pos_hint={'center_x': 0.5, 'center_y': 0.2},  # Center the main layout both horizontally and vertically
             )
             main_layout.add_widget(button_layout)
             main_layout.add_widget(color_button_layout)
