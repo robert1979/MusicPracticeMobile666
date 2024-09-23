@@ -12,6 +12,10 @@ from item_popup import ItemPopup  # Import the ItemPopup class
 from kivymd.uix.menu import MDDropdownMenu
 from kivy.metrics import dp
 
+# Import permissions for Android
+if platform == 'android':
+    from android.permissions import Permission, request_permissions, check_permission
+
 KV = '''
 MDScreen:
     md_bg_color: self.theme_cls.bg_normal
@@ -57,6 +61,9 @@ class MainApp(MDApp):
         self.theme_cls.theme_style = "Light"  # Set the theme to Light or Dark
         self.data_file = self.get_data_file_path()
         self.menu = None  # Initialize the menu attribute to None
+
+        if platform == 'android':
+            self.request_android_permissions()  # Request permissions on Android
         return Builder.load_string(KV)
 
     def on_start(self):
@@ -64,10 +71,20 @@ class MainApp(MDApp):
         self.load_data()  # Load the session data when the app starts
         self.populate_ui()  # Populate the UI with data from the runtime dictionary
 
+    def request_android_permissions(self):
+        """Request necessary Android permissions."""
+        if platform == 'android':
+            try:
+                request_permissions([Permission.WRITE_EXTERNAL_STORAGE, Permission.READ_EXTERNAL_STORAGE])
+            except Exception as e:
+                print(f"Error requesting permissions: {e}")
+
     def get_data_file_path(self):
         """Return the path to save/load data based on platform compatibility."""
         if platform == 'android':
-            return os.path.join(self.user_data_dir, 'sessions_data.json')
+            from android.storage import primary_external_storage_path
+            storage_dir = primary_external_storage_path()
+            return os.path.join(storage_dir, 'sessions_data.json')
         else:
             return os.path.join(os.path.dirname(__file__), 'sessions_data.json')
 
