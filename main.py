@@ -22,7 +22,7 @@ MDScreen:
         MDTopAppBar:
             title: "Sessions"
             left_action_items: [["menu", lambda x: app.show_settings_menu(x)]]
-            right_action_items: [["sort", lambda x: app.on_sort_button()]]  # Add sort button here
+            right_action_items: [["sort", lambda x: app.on_sort_button(x)]]  # Add sort button here
             elevation: 10
 
         ScrollView:
@@ -302,6 +302,66 @@ class MainApp(MDApp):
         """Close the current dialog."""
         if self.settings_dialog:
             self.settings_dialog.dismiss()
+
+    def on_sort_button(self, button):
+        """Display a dropdown menu with sorting options."""
+        menu_items = [
+            {
+                "text": "Alphabetical",
+                "viewclass": "OneLineListItem",
+                "on_release": lambda: self.sort_sessions("Alphabetical")
+            },
+            {
+                "text": "Practice Count",
+                "viewclass": "OneLineListItem",
+                "on_release": lambda: self.sort_sessions("Practice Count")
+            },
+            {
+                "text": "Last Practice",
+                "viewclass": "OneLineListItem",
+                "on_release": lambda: self.sort_sessions("Last Practice")
+            },
+        ]
+
+        sort_menu = MDDropdownMenu(
+            caller=button,
+            items=menu_items,
+            width_mult=4,
+        )
+        sort_menu.open()
+
+    def sort_sessions(self, criteria):
+        """Sort sessions based on the selected criteria."""
+        if criteria == "Alphabetical":
+            # Sort sessions by name alphabetically
+            sorted_sessions = sorted(self.sessions.items(), key=lambda x: x[0].lower())
+        elif criteria == "Practice Count":
+            # Sort sessions by practice count (ascending order)
+            sorted_sessions = sorted(self.sessions.items(), key=lambda x: x[1].get('practice_count', 0))
+        elif criteria == "Last Practice":
+            # Sort sessions by last practiced date (most recent first)
+            sorted_sessions = sorted(
+                self.sessions.items(),
+                key=lambda x: (
+                    datetime.strptime(x[1]['last_practiced'], '%Y-%m-%d') if x[1]['last_practiced'] else datetime.min),
+                reverse=True  # Most recent date first
+            )
+
+        # Update the UI with the sorted sessions
+        self.root.ids.item_list.clear_widgets()
+        for session_name, session_data in sorted_sessions:
+            last_practiced = session_data.get('last_practiced')
+            practice_count = session_data.get('practice_count', 0)
+            last_practiced_date = None if last_practiced is None else datetime.strptime(last_practiced,
+                                                                                        "%Y-%m-%d").date()
+            self.add_list_item(session_name, last_practiced_date, practice_count)
+
+        # Safely dismiss the menu if it exists
+        if self.menu:
+            self.menu.dismiss()
+
+        print(f"Sorted by: {criteria}")
+
 
 if __name__ == '__main__':
     MainApp().run()
