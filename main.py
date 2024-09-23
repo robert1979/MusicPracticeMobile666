@@ -1,3 +1,5 @@
+import json
+import os
 from kivy.lang import Builder
 from kivymd.app import MDApp
 from kivymd.uix.list import ThreeLineAvatarIconListItem, IconRightWidget
@@ -5,6 +7,7 @@ from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton
 from kivymd.uix.textfield import MDTextField
 from datetime import datetime, timedelta
+from kivy.utils import platform
 
 KV = '''
 MDScreen:
@@ -22,18 +25,64 @@ MDScreen:
         ScrollView:
             MDList:
                 id: item_list
-                padding: [0, 40, 0, 0]  # Adds 20dp padding between the toolbar and the list
+                padding: [0, 40, 0, 0]  # Adds 40dp padding between the toolbar and the list
 '''
 
 
 class MainApp(MDApp):
     dialog = None
     settings_dialog = None
+    data_file = None
 
     def build(self):
         self.theme_cls.primary_palette = "Blue"  # Set the primary color palette
         self.theme_cls.theme_style = "Light"  # Set the theme to Light or Dark
+        self.data_file = self.get_data_file_path()
         return Builder.load_string(KV)
+
+    def on_start(self):
+        """Called after the app is fully initialized and the UI is ready."""
+        self.load_data()  # Load the session data when the app starts
+
+    def get_data_file_path(self):
+        """Return the path to save/load data based on platform compatibility."""
+        if platform == 'android':
+            return os.path.join(self.user_data_dir, 'sessions_data.json')
+        else:
+            return os.path.join(os.path.dirname(__file__), 'sessions_data.json')
+
+    def save_data(self, data):
+        """Save session data to a JSON file."""
+        with open(self.data_file, 'w') as f:
+            json.dump(data, f)
+
+    def load_data(self):
+        """Load session data from the JSON file and populate the list."""
+        if os.path.exists(self.data_file):
+            with open(self.data_file, 'r') as f:
+                sessions = json.load(f)
+                for session in sessions:
+                    self.add_list_item(
+                        name=session['name'],
+                        last_practiced=datetime.strptime(session['last_practiced'], "%Y-%m-%d") if session['last_practiced'] else None,
+                        practice_count=session['practice_count']
+                    )
+
+    def get_sessions_as_dict(self):
+        """Get the current sessions as a list of dictionaries."""
+        sessions = []
+        for child in self.root.ids.item_list.children:
+            if isinstance(child, ThreeLineAvatarIconListItem):
+                name = child.text
+                last_practiced_text = child.secondary_text.split(": ")[-1]
+                practice_count = int(child.tertiary_text.split(": ")[-1])
+                last_practiced = None if last_practiced_text == 'Never' else last_practiced_text
+                sessions.append({
+                    'name': name,
+                    'last_practiced': last_practiced,
+                    'practice_count': practice_count
+                })
+        return sessions
 
     def add_list_item(self, name, last_practiced=None, practice_count=0):
         # Format the subtitle depending on the last_practiced value
@@ -55,6 +104,9 @@ class MainApp(MDApp):
 
         # Add the list item to the MDList
         self.root.ids.item_list.add_widget(list_item)
+
+        # Save data whenever a new session is added
+        self.save_data(self.get_sessions_as_dict())
 
     def show_item_settings_popup(self, name):
         """Show a popup with 'Add Session', 'Edit Last Practice Date', and 'Delete'."""
@@ -78,8 +130,19 @@ class MainApp(MDApp):
 
     def handle_action(self, action, name):
         """Handle actions selected from the popup."""
+        if action == "Delete":
+            self.delete_session(name)
+        # Add logic for "Add Session" or "Edit Last Practice Date" if needed.
         print(f"{action} selected for session: {name}")
         self.settings_dialog.dismiss()
+
+    def delete_session(self, name):
+        """Delete a session by its name."""
+        for child in self.root.ids.item_list.children[:]:
+            if isinstance(child, ThreeLineAvatarIconListItem) and child.text == name:
+                self.root.ids.item_list.remove_widget(child)
+                break
+        self.save_data(self.get_sessions_as_dict())  # Save the updated data after deletion
 
     def format_last_practiced(self, last_practiced):
         """Format the 'Last Practiced' field."""
