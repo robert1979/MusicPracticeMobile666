@@ -26,9 +26,9 @@ MDScreen:
 '''
 
 
-
 class MainApp(MDApp):
     dialog = None
+    settings_dialog = None
 
     def build(self):
         self.theme_cls.primary_palette = "Blue"  # Set the primary color palette
@@ -46,25 +46,40 @@ class MainApp(MDApp):
             tertiary_text=f"Practice Count: {practice_count}"
         )
 
-        # Increase font size of the list item (Name, Last Practiced, and Practice Count)
-        list_item.ids._lbl_primary.font_size = "20sp"  # For the main text (Name)
-        list_item.ids._lbl_secondary.font_size = "16sp"  # For secondary text (Last Practiced)
-        list_item.ids._lbl_tertiary.font_size = "14sp"  # For tertiary text (Practice Count)
-
-        # Add padding between the header (Name) and the other fields
-        #list_item.ids._lbl_primary.padding_y = -10.0  # Adds vertical space above and below the Name
-        list_item.ids._lbl_secondary.padding_y = 5.0  # Adds space above and below the Last Practiced
-        list_item.ids._lbl_tertiary.padding_y = 5.0  # Adds space above and below the Practice Count
-
         # Create the trailing vertical dots icon (settings)
         trailing_icon = IconRightWidget(icon="dots-vertical")
-        trailing_icon.bind(on_release=lambda x: self.on_item_settings(name))
+        trailing_icon.bind(on_release=lambda x: self.show_item_settings_popup(name))
 
         # Add the trailing icon to the list item
         list_item.add_widget(trailing_icon)
 
         # Add the list item to the MDList
         self.root.ids.item_list.add_widget(list_item)
+
+    def show_item_settings_popup(self, name):
+        """Show a popup with 'Add Session', 'Edit Last Practice Date', and 'Delete'."""
+        if not self.settings_dialog:
+            self.settings_dialog = MDDialog(
+                title=f"Options for {name}",
+                type="confirmation",
+                buttons=[
+                    MDFlatButton(
+                        text="ADD SESSION", on_release=lambda x: self.handle_action("Add Session", name)
+                    ),
+                    MDFlatButton(
+                        text="EDIT LAST PRACTICE DATE", on_release=lambda x: self.handle_action("Edit Last Practice Date", name)
+                    ),
+                    MDFlatButton(
+                        text="DELETE", on_release=lambda x: self.handle_action("Delete", name)
+                    ),
+                ]
+            )
+        self.settings_dialog.open()
+
+    def handle_action(self, action, name):
+        """Handle actions selected from the popup."""
+        print(f"{action} selected for session: {name}")
+        self.settings_dialog.dismiss()
 
     def format_last_practiced(self, last_practiced):
         """Format the 'Last Practiced' field."""
@@ -83,9 +98,6 @@ class MainApp(MDApp):
 
     def on_menu_button(self):
         print("Menu button pressed")
-
-    def on_item_settings(self, name):
-        print(f"Settings for: {name}")
 
     def on_add_button(self):
         # Show a dialog to add a new name
