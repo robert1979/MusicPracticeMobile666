@@ -73,11 +73,11 @@ class MainApp(MDApp):
 
     def request_android_permissions(self):
         """Request necessary Android permissions."""
-        if platform == 'android':
-            try:
-                request_permissions([Permission.WRITE_EXTERNAL_STORAGE, Permission.READ_EXTERNAL_STORAGE])
-            except Exception as e:
-                print(f"Error requesting permissions: {e}")
+        try:
+            request_permissions([Permission.WRITE_EXTERNAL_STORAGE, Permission.READ_EXTERNAL_STORAGE])
+            print("Permissions requested.")
+        except Exception as e:
+            print(f"Error requesting permissions: {e}")
 
     def get_data_file_path(self):
         """Return the path to save/load data based on platform compatibility."""

@@ -19,7 +19,7 @@ source.include_exts = py,png,jpg,kv,atlas
 version = 0.1
 
 # (list) Application requirements
-requirements = python3, kivy, kivymd
+requirements = python3==3.11, kivy, kivymd, android
 
 # (str) Supported orientation
 orientation = portrait
@@ -34,9 +34,9 @@ android.permissions = WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
 android.minapi = 21
 
 # (int) Target API level for Android
-android.api = 31
+android.api = 33
 
-# (int) NDK API level for Android
+# (int) NDK API level for Android (suggested to raise it if you encounter issues)
 android.ndk_api = 21
 
 # (list) Supported architectures for Android
@@ -50,5 +50,11 @@ android.allow_backup = True
 # (int) Log level (0 = error only, 1 = info, 2 = debug (with command output))
 log_level = 2
 
+# (bool) Enable Android storage access by managing the external storage path
+android.manage_external_storage = True
+
 # (int) Display warning if buildozer is run as root (0 = False, 1 = True)
 warn_on_root = 1
+
+# (str) Do not strip comments from debug logs
+android.logcat_filters = *:S python:D
