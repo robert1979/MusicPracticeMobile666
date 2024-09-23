@@ -22,19 +22,25 @@ MDScreen:
         MDTopAppBar:
             title: "Sessions"
             left_action_items: [["menu", lambda x: app.show_settings_menu(x)]]
-            right_action_items: [["sort", lambda x: app.on_sort_button(x)]]  # Add sort button here
+            right_action_items: [["sort", lambda x: app.on_sort_button(x)]]
             elevation: 10
 
         ScrollView:
             MDList:
                 id: item_list
-                padding: [0, 40, 0, 0]
+                padding: [0, 0, 0, dp(10)]  # Bottom padding to avoid the FAB overlapping the last item
+                size_hint_y: None
+                height: self.minimum_height
 
     MDFloatingActionButton:
         icon: "plus"
         md_bg_color: app.theme_cls.primary_color
-        pos_hint: {"x": 0.9, "y": 0.05}  # Position at the bottom right
+        size_hint: None, None
+        size: dp(56), dp(56)
         on_release: app.on_add_button()
+        # Use fixed padding for positioning:
+        x: root.width - self.width - dp(16)  # 16dp padding from the right
+        y: dp(16)  # 16dp padding from the bottom
 '''
 
 
