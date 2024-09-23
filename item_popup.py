@@ -5,6 +5,7 @@ from kivymd.uix.button import MDRaisedButton, MDIconButton
 from kivymd.uix.pickers import MDDatePicker
 from kivy.uix.boxlayout import BoxLayout
 from kivy.utils import get_color_from_hex
+from kivymd.uix.gridlayout import MDGridLayout
 from kivy.graphics import Color, Line
 
 class ItemPopup:
@@ -55,10 +56,10 @@ class ItemPopup:
             )
 
             # Create a horizontal layout for the 4 colored buttons
-            color_button_layout = BoxLayout(
-                orientation='horizontal',
+            color_button_layout = MDGridLayout(
+                cols=2,
                 size_hint=(1, None),
-                height='48dp',
+                height='96dp',  # Adjust height for 2 rows
                 padding=[10, 0, 10, 0],
                 spacing=10
             )
