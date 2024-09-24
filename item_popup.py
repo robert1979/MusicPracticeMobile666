@@ -59,7 +59,6 @@ class ItemPopup:
             color_button_layout = MDGridLayout(
                 cols=2,
                 size_hint=(1, None),
-
                 height="96dp",  # Adjust height for 2 rows
                 padding=[10, 10, 10, 10],
                 spacing=10
@@ -78,10 +77,10 @@ class ItemPopup:
             main_layout = BoxLayout(
                 orientation='vertical',
                 size_hint=(None, None),
-                padding=10,
-                spacing=20,
+                padding=[10, 5, 10, 10],  # Reduce padding, especially at the top
+                spacing=10,  # Reduce spacing between widgets
                 width="240dp",
-                height='360dp',
+                height='260dp',
                 pos_hint={'center_x': 0.5}
             )
             main_layout.add_widget(add_button)
@@ -96,7 +95,7 @@ class ItemPopup:
                 content_cls=main_layout,
                 size_hint=(None, None),
                 width='300dp',
-                height='500dp',  # Adjusted to fit the content
+                height='400dp',  # Adjusted to fit the content
                 buttons=[],
             )
 
