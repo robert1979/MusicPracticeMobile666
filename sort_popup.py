@@ -55,8 +55,8 @@ class SortPopup:
             for index, color in enumerate(self.session_colors):
                 color_button = MDFloatingActionButton(
                     md_bg_color=get_color_from_hex(color),
-                    size_hint=(None, None),
-                    size=(dp(48), dp(48)),
+                    size_hint=(1, 1),
+
                     on_release=lambda btn, idx=index: self.on_sort_color(idx)  # Pass index explicitly
                 )
                 color_button_layout.add_widget(color_button)
@@ -65,6 +65,7 @@ class SortPopup:
             main_layout = BoxLayout(
                 orientation='vertical',
                 size_hint=(None, None),
+
                 padding=10,
                 spacing=10,
                 width='240dp',
