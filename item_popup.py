@@ -2,6 +2,7 @@ from operator import index
 
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDRaisedButton, MDIconButton
+from kivymd.uix.label import MDLabel
 from kivymd.uix.pickers import MDDatePicker
 from kivy.uix.boxlayout import BoxLayout
 from kivy.utils import get_color_from_hex
@@ -23,6 +24,19 @@ class ItemPopup:
     def create_popup(self):
         """Create the popup with raised buttons for 'Add Session', 'Edit Last Practice Date', 'Delete', and color buttons."""
         if not self.dialog:
+
+            custom_title = MDLabel(
+                text=f"{self.session_name}",
+                size_hint=(1, None),
+                height="40dp",
+                halign="center",
+                valign="middle",
+                font_size="40sp",
+                font_style="H6"
+            )
+            custom_title.bind(size=custom_title.setter('text_size'))  # Ensure text wraps and centers
+
+
             # Add Session Button with Text
             add_button = MDRaisedButton(
                 text="Add Session",
@@ -83,6 +97,8 @@ class ItemPopup:
                 height='260dp',
                 pos_hint={'center_x': 0.5}
             )
+
+            main_layout.add_widget(custom_title)
             main_layout.add_widget(add_button)
             main_layout.add_widget(edit_button)
             main_layout.add_widget(delete_button)
@@ -90,7 +106,6 @@ class ItemPopup:
 
             # Create the dialog with the custom button layout
             self.dialog = MDDialog(
-                title=f"{self.session_name}",
                 type="custom",
                 content_cls=main_layout,
                 size_hint=(None, None),
