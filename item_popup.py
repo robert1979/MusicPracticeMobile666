@@ -36,7 +36,6 @@ class ItemPopup:
             )
             custom_title.bind(size=custom_title.setter('text_size'))  # Ensure text wraps and centers
 
-
             # Add Session Button with Text
             add_button = MDRaisedButton(
                 text="Add Session",
@@ -79,10 +78,12 @@ class ItemPopup:
             )
 
             # Create each button individually and bind on_release event afterward
+            self.color_buttons = []  # Track buttons for highlighting
             for index, color in enumerate(self.session_colors):
                 color_button = self.create_color_button(color)  # Create button with specific color
                 color_button_layout.add_widget(color_button)
                 color_button.bind(on_release=lambda btn, idx=index: self.on_color_button_press(idx))  # Bind event
+                self.color_buttons.append(color_button)
 
             # Highlight the current session_type button
             self.highlight_selected_button(self.session_type)
@@ -124,11 +125,18 @@ class ItemPopup:
         )
 
     def highlight_selected_button(self, selected_index):
-        """Highlight the selected button corresponding to the session_type."""
+        """Highlight the selected button corresponding to the session_type with a white round icon."""
         for idx, button in enumerate(self.color_buttons):
-            button.elevation = 2  # Reset elevation for all buttons
+            button.clear_widgets()  # Remove any existing icon from previous selections
             if idx == selected_index:
-                button.elevation = 12  # Highlight selected button
+                # Add a round white icon to the selected button
+                icon = MDIconButton(
+                    icon="check-circle",  # You can use any suitable icon
+                    theme_text_color="Custom",
+                    text_color=(1, 1, 1, 1),  # White icon
+                    pos_hint={'center_x': 0.5, 'center_y': 0.5},
+                )
+                button.add_widget(icon)
 
     def on_color_button_press(self, selected_index):
         """Handle color button press and update the session type."""
