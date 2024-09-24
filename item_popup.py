@@ -26,7 +26,7 @@ class ItemPopup:
             # Add Session Button with Text
             add_button = MDRaisedButton(
                 text="Add Session",
-                size_hint=(None, None),
+                size_hint=(1, None),
                 width="200dp",
                 height="48dp",
                 pos_hint={'center_x': 0.5},
@@ -36,7 +36,7 @@ class ItemPopup:
             # Edit Practice Date Button with Text
             edit_button = MDRaisedButton(
                 text="Edit Last Practice Date",
-                size_hint=(None, None),
+                size_hint=(1, None),
                 width="200dp",
                 height="48dp",
                 pos_hint={'center_x': 0.5},
@@ -48,19 +48,20 @@ class ItemPopup:
             # Delete Button with Text
             delete_button = MDRaisedButton(
                 text="Delete",
-                size_hint=(None, None),
+                size_hint=(1, None),
                 width="200dp",
                 height="48dp",
                 pos_hint={'center_x': 0.5},
                 on_release=lambda x: self.on_button_press("Delete")
             )
 
-            # Create a horizontal layout for the 4 colored buttons
+            # Create a 2x2 grid layout for the 4 colored buttons
             color_button_layout = MDGridLayout(
                 cols=2,
                 size_hint=(1, None),
-                height='96dp',  # Adjust height for 2 rows
-                padding=[10, 0, 10, 0],
+
+                height="96dp",  # Adjust height for 2 rows
+                padding=[10, 10, 10, 10],
                 spacing=10
             )
 
@@ -76,9 +77,11 @@ class ItemPopup:
             # Main layout to combine all action buttons and color buttons (stacked vertically)
             main_layout = BoxLayout(
                 orientation='vertical',
-                size_hint=(1, None),
+                size_hint=(None, None),
                 padding=10,
-                spacing=10,
+                spacing=20,
+                width="240dp",
+                height='360dp',
                 pos_hint={'center_x': 0.5}
             )
             main_layout.add_widget(add_button)
@@ -91,8 +94,9 @@ class ItemPopup:
                 title=f"{self.session_name}",
                 type="custom",
                 content_cls=main_layout,
-                size_hint=(0.8, None),
-                height='400dp',  # Adjusted to fit the content
+                size_hint=(None, None),
+                width='300dp',
+                height='500dp',  # Adjusted to fit the content
                 buttons=[],
             )
 
