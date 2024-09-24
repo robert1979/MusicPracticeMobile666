@@ -13,6 +13,8 @@ from item_popup import ItemPopup  # Import the ItemPopup class
 from kivymd.uix.menu import MDDropdownMenu
 from kivy.utils import get_color_from_hex
 from kivy.metrics import dp
+from sort_popup import SortPopup
+
 
 # Import permissions for Android
 if platform == 'android':
@@ -398,51 +400,13 @@ class MainApp(MDApp):
             self.dialog.dismiss()  # Ensure the add session dialog is dismissed
 
     def on_sort_button(self, button):
-        """Display a dropdown menu with sorting options, including color buttons for session_type sorting."""
-        if not hasattr(self, 'sort_menu'):
-            menu_items = [
-                {
-                    "text": "Alphabetical",
-                    "viewclass": "OneLineListItem",
-                    "on_release": lambda: self.sort_sessions("alphabetical")
-                },
-                {
-                    "text": "Practice Count",
-                    "viewclass": "OneLineListItem",
-                    "on_release": lambda: self.sort_sessions("practice_count")
-                },
-                {
-                    "text": "Last Practice",
-                    "viewclass": "OneLineListItem",
-                    "on_release": lambda: self.sort_sessions("last_practice")
-                },
-                {
-                    "text": "Favourites",
-                    "viewclass": "OneLineListItem",
-                    "on_release": lambda: self.sort_sessions("favourites")
-                },
-            ]
+        """Open the sort popup with sorting options."""
+        if not hasattr(self, 'sort_popup'):
+            # Create the popup with the sorting options
+            self.sort_popup = SortPopup(self.sort_sessions, SESSION_COLORS)
 
-            # Add color buttons to the menu for session_type sorting
-            for index, color in enumerate(SESSION_COLORS):
-                menu_items.append(
-                    {
-                        "viewclass": "MDFloatingActionButton",
-                        "icon": "",
-                        "height": 30,
-                        "md_bg_color": get_color_from_hex(color),
-                        "on_release": lambda x=index: self.sort_sessions_by_color(x),
-                        "size": (dp(48), dp(28)),  # Adjust the size to fit more items
-                    }
-                )
-
-            self.sort_menu = MDDropdownMenu(
-                caller=button,
-                items=menu_items,
-                width_mult=4,
-                max_height=400
-            )
-        self.sort_menu.open()
+        sort_dialog = self.sort_popup.create_popup()
+        sort_dialog.open()
 
     def sort_sessions_by_color(self, color_index):
         """Sort the sessions based on the selected session_type (color index)."""
@@ -465,20 +429,23 @@ class MainApp(MDApp):
 
     def sort_sessions(self, criteria):
         """Sort the sessions based on the selected criteria."""
-        if criteria == "alphabetical":
-            sorted_sessions = sorted(self.sessions.items(), key=lambda x: x[0].lower())
-        elif criteria == "practice_count":
-            sorted_sessions = sorted(self.sessions.items(), key=lambda x: x[1]['practice_count'], reverse=True)
-        elif criteria == "last_practice":
-            sorted_sessions = sorted(self.sessions.items(), key=lambda x: x[1]['last_practiced'] or "", reverse=True)
-        elif criteria == "favourites":
-            # Sort by is_favorite (True first), and then alphabetically
-            sorted_sessions = sorted(self.sessions.items(), key=lambda x: (not x[1]['is_favorite'], x[0].lower()))
-        elif criteria.startswith("color"):
-            # Sort by session_type based on color index
-            session_type_index = int(criteria.split("_")[-1])  # Extract the color index from the criteria
-            sorted_sessions = sorted(self.sessions.items(), key=lambda x: x[1]['session_type'] == session_type_index,
-                                     reverse=True)
+        if "color_" in criteria:
+            color_index = int(criteria.split("_")[1])
+            sorted_sessions = sorted(
+                self.sessions.items(),
+                key=lambda x: x[1].get('session_type', 0) == color_index,
+                reverse=True
+            )
+        else:
+            if criteria == "alphabetical":
+                sorted_sessions = sorted(self.sessions.items(), key=lambda x: x[0].lower())
+            elif criteria == "practice_count":
+                sorted_sessions = sorted(self.sessions.items(), key=lambda x: x[1]['practice_count'], reverse=True)
+            elif criteria == "last_practice":
+                sorted_sessions = sorted(self.sessions.items(), key=lambda x: x[1]['last_practiced'] or "",
+                                         reverse=True)
+            elif criteria == "favourites":
+                sorted_sessions = sorted(self.sessions.items(), key=lambda x: (not x[1]['is_favorite'], x[0].lower()))
 
         # Clear the current list and re-populate it with the sorted sessions
         self.root.ids.item_list.clear_widgets()
@@ -490,8 +457,6 @@ class MainApp(MDApp):
             last_practiced_date = None if last_practiced is None else datetime.strptime(last_practiced,
                                                                                         "%Y-%m-%d").date()
             self.add_list_item(session_name, last_practiced_date, practice_count, is_favorite, session_type)
-
-        self.sort_menu.dismiss()  # Close the sorting menu after sorting
 
 
 if __name__ == '__main__':
