@@ -69,7 +69,7 @@ class SortPopup:
                 padding=10,
                 spacing=10,
                 width='240dp',
-                height='360dp'
+                height='300dp'
             )
             main_layout.add_widget(alphabetical_button)
             main_layout.add_widget(practice_count_button)

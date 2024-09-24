@@ -162,7 +162,7 @@ class MainApp(MDApp):
         list_item = ThreeLineAvatarIconListItem(
             text=name,
             secondary_text=f"Last Practiced: {last_practiced_text}",
-            tertiary_text=f"Practice Count: {practice_count}, Session Type: {session_type}",
+            tertiary_text=f"Practice Count: {practice_count}",
             bg_color=get_color_from_hex(background_color)  # Set background color
         )
 
